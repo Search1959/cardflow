@@ -28,6 +28,7 @@ import {
 import { CardProfile, ChatMessage } from '../types.js';
 import { downloadVCard } from '../lib/vcard.js';
 import { AvatarDisplay } from './AvatarDisplay.js';
+import { MapLocationDisplay } from './MapLocationDisplay.js';
 
 interface PublicProfileProps {
   slug: string;
@@ -540,35 +541,7 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ slug }) => {
 
         {/* Google Maps & Location Preview */}
         {card.address && (
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <MapPin className="w-5 h-5 text-red-400" />
-                <h3 className="font-bold text-base text-white">Office Location & Directions</h3>
-              </div>
-              <a
-                href={`https://maps.google.com/?q=${encodeURIComponent(card.address)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-blue-400 rounded-xl text-xs font-bold flex items-center space-x-1"
-              >
-                <Navigation className="w-3.5 h-3.5" />
-                <span>Directions</span>
-              </a>
-            </div>
-            <p className="text-xs text-slate-300">{card.address}</p>
-            {/* Embedded Visual Map Representation */}
-            <div className="w-full h-48 rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 relative flex items-center justify-center text-center p-4">
-              <div className="absolute inset-0 bg-slate-900 opacity-90" />
-              <div className="relative z-10 space-y-2">
-                <div className="w-10 h-10 mx-auto rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 animate-bounce">
-                  <MapPin className="w-6 h-6" />
-                </div>
-                <p className="text-xs font-bold text-white">{card.company}</p>
-                <p className="text-[11px] text-slate-400 max-w-sm">{card.address}</p>
-              </div>
-            </div>
-          </div>
+          <MapLocationDisplay address={card.address} company={card.company} />
         )}
 
         {/* CRM Lead Capture Form */}

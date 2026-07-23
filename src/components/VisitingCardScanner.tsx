@@ -26,6 +26,7 @@ import {
   Share2
 } from 'lucide-react';
 import { OCRResult, CardProfile } from '../types.js';
+import { MapLocationDisplay } from './MapLocationDisplay.js';
 
 interface VisitingCardScannerProps {
   onCardCreated: (newCard: CardProfile) => void;
@@ -665,8 +666,8 @@ export const VisitingCardScanner: React.FC<VisitingCardScannerProps> = ({
                 </div>
               </div>
 
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Address</label>
+              <div className="sm:col-span-2 space-y-2">
+                <label className="block text-xs font-semibold text-slate-400">Address / Location</label>
                 <div className="relative">
                   <MapPin className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
                   <input
@@ -677,6 +678,16 @@ export const VisitingCardScanner: React.FC<VisitingCardScannerProps> = ({
                     className="w-full pl-9 pr-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:border-blue-500 focus:outline-none"
                   />
                 </div>
+                {formData.address && formData.address.trim().length > 3 && (
+                  <div className="pt-2">
+                    <MapLocationDisplay
+                      address={formData.address}
+                      company={formData.company}
+                      title="Extracted Card Address Map Location"
+                      compact={true}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Custom Slug & URL Preview */}
