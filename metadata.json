@@ -1,0 +1,6 @@
+{
+  "name": "CardFlow Pro - AI Digital Identity Platform",
+  "description": "AI-powered Digital Identity Platform for scanning physical visiting cards, AI OCR extraction, custom slug profile pages (/card/slug), downloadable vCards, QR analytics, CRM lead capture, AI bio generation, and trained AI chatbots.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
