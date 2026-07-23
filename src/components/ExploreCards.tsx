@@ -48,13 +48,8 @@ export const ExploreCards: React.FC<ExploreCardsProps> = ({
     loadCards();
   }, []);
 
-  const categories = [
-    'all',
-    'IT Services & Software',
-    'Design & Branding',
-    'Real Estate & Properties',
-    'Legal & Advisory',
-  ];
+  const dynamicCategories = Array.from(new Set(cards.map((c) => c.businessCategory).filter(Boolean)));
+  const categories = ['all', ...dynamicCategories];
 
   const filtered = cards.filter((c) => {
     const matchesSearch =

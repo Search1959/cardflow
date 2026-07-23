@@ -326,6 +326,16 @@ export const VisitingCardScanner: React.FC<VisitingCardScannerProps> = ({
       }
 
       const createdCard: CardProfile = await response.json();
+
+      // Store in local backup cache
+      try {
+        const existingLocal = JSON.parse(localStorage.getItem('cardflow_user_cards') || '[]');
+        const updatedLocal = [createdCard, ...existingLocal.filter((c: any) => c.slug !== createdCard.slug)];
+        localStorage.setItem('cardflow_user_cards', JSON.stringify(updatedLocal));
+      } catch (e) {
+        console.warn('LocalStorage save error:', e);
+      }
+
       onCardCreated(createdCard);
       onNavigateToCard(createdCard.slug);
     } catch (err: any) {

@@ -72,11 +72,24 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ slug }) => {
       setLoading(true);
       setError(null);
       try {
+        let data: CardProfile | null = null;
         const res = await fetch(`/api/cards/by-slug/${slug}`);
-        if (!res.ok) {
+        if (res.ok) {
+          data = await res.json();
+        } else {
+          // Check local backup cache
+          try {
+            const localCards = JSON.parse(localStorage.getItem('cardflow_user_cards') || '[]');
+            data = localCards.find((c: CardProfile) => c.slug.toLowerCase() === slug.toLowerCase()) || null;
+          } catch (e) {
+            data = null;
+          }
+        }
+
+        if (!data) {
           throw new Error('Digital identity profile not found');
         }
-        const data: CardProfile = await res.json();
+
         setCard(data);
 
         // Welcome message for AI Chatbot
