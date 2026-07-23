@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { CardProfile, ChatMessage } from '../types.js';
 import { downloadVCard } from '../lib/vcard.js';
+import { AvatarDisplay } from './AvatarDisplay.js';
 
 interface PublicProfileProps {
   slug: string;
@@ -311,10 +312,12 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ slug }) => {
             <div className="flex flex-col sm:flex-row items-start sm:items-end space-y-4 sm:space-y-0 sm:space-x-6">
               {/* Avatar Logo */}
               <div className="relative">
-                <img
-                  src={card.avatarUrl || card.logoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'}
-                  alt={card.name}
-                  className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl border-4 border-slate-900 object-cover shadow-2xl bg-slate-950"
+                <AvatarDisplay
+                  avatarUrl={card.avatarUrl}
+                  logoUrl={card.logoUrl}
+                  name={card.name}
+                  primaryColor={card.primaryColor}
+                  className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl border-4 border-slate-900 text-3xl sm:text-4xl font-black shadow-2xl overflow-hidden"
                 />
                 <span className="absolute bottom-2 right-2 w-5 h-5 bg-emerald-500 border-2 border-slate-900 rounded-full" title="Verified Active Profile" />
               </div>

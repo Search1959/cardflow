@@ -18,9 +18,15 @@ import {
   X,
   Download,
   Filter,
-  MessageSquare
+  MessageSquare,
+  Lock,
+  LogOut,
+  Mail,
+  Key,
+  EyeOff
 } from 'lucide-react';
 import { CardProfile } from '../types.js';
+import { AvatarDisplay } from './AvatarDisplay.js';
 
 interface AdminDashboardProps {
   onNavigateToScan: () => void;
@@ -31,6 +37,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onNavigateToScan,
   onNavigateToCard,
 }) => {
+  // Admin Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return sessionStorage.getItem('cardflow_admin_auth') === 'true';
+  });
+  const [adminEmailInput, setAdminEmailInput] = useState('apex7tech@gmail.com');
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState('');
+  const [loginSuccess, setLoginSuccess] = useState(false);
+
   const [cards, setCards] = useState<CardProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,6 +62,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // AI Enrichment state
   const [enrichingId, setEnrichingId] = useState<string | null>(null);
+
+  const handleAdminLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+
+    const trimmedEmail = adminEmailInput.trim().toLowerCase();
+    const trimmedPass = adminPasswordInput.trim();
+
+    // Valid credentials check: apex7tech@gmail.co or apex7tech@gmail.com and password Search@1959
+    const isValidEmail = trimmedEmail === 'apex7tech@gmail.co' || trimmedEmail === 'apex7tech@gmail.com' || trimmedEmail === 'apex7tech';
+    const isValidPassword = trimmedPass === 'Search@1959';
+
+    if (isValidEmail && isValidPassword) {
+      sessionStorage.setItem('cardflow_admin_auth', 'true');
+      sessionStorage.setItem('cardflow_admin_email', adminEmailInput.trim());
+      setLoginSuccess(true);
+      setTimeout(() => {
+        setIsAuthenticated(true);
+        setLoginSuccess(false);
+      }, 500);
+    } else {
+      setLoginError('Invalid Login ID or Password. Please verify your credentials.');
+    }
+  };
+
+  const handleAdminLogout = () => {
+    sessionStorage.removeItem('cardflow_admin_auth');
+    sessionStorage.removeItem('cardflow_admin_email');
+    setIsAuthenticated(false);
+    setAdminPasswordInput('');
+    setLoginError('');
+  };
 
   const fetchCards = async () => {
     setLoading(true);
@@ -121,23 +169,144 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const totalScans = cards.reduce((a, b) => a + (b.qrScansCount || 0), 0);
   const totalLeads = cards.reduce((a, b) => a + (b.leadsCount || 0), 0);
 
+  // If not authenticated, show Admin Login Screen
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-8 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+          {/* Top Decorative Glow */}
+          <div className="absolute -top-24 -left-24 w-48 h-48 bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Header */}
+          <div className="text-center space-y-3 mb-8 relative z-10">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-xl shadow-blue-600/30">
+              <Lock className="w-8 h-8 text-white" />
+            </div>
+            <h2 className="text-2xl font-black tracking-tight text-white">Admin Authentication</h2>
+            <p className="text-xs text-slate-400">
+              Enter your admin credentials to access the CardFlow management portal.
+            </p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleAdminLogin} className="space-y-5 relative z-10">
+            {/* Login ID / Email */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-300 flex items-center space-x-1.5">
+                <Mail className="w-3.5 h-3.5 text-blue-400" />
+                <span>Login ID / Email</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  value={adminEmailInput}
+                  onChange={(e) => setAdminEmailInput(e.target.value)}
+                  placeholder="apex7tech@gmail.com"
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-mono"
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-300 flex items-center space-x-1.5">
+                <Key className="w-3.5 h-3.5 text-blue-400" />
+                <span>Password</span>
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={adminPasswordInput}
+                  onChange={(e) => setAdminPasswordInput(e.target.value)}
+                  placeholder="Search@1959"
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl px-4 py-3 pr-11 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-1"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Error Message */}
+            {loginError && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center space-x-2 text-rose-400 text-xs animate-shake">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{loginError}</span>
+              </div>
+            )}
+
+            {/* Success Feedback */}
+            {loginSuccess && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center space-x-2 text-emerald-400 text-xs">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>Login successful! Loading dashboard...</span>
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              className="w-full py-3.5 px-4 rounded-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-600/30 flex items-center justify-center space-x-2 text-sm transition-all transform active:scale-98"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>Login to Dashboard</span>
+            </button>
+
+            {/* Credentials Note */}
+            <div className="pt-2 text-center">
+              <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-[11px] text-slate-400 font-mono">
+                <span className="text-slate-500">Demo Login:</span>
+                <span className="text-blue-400 font-bold">apex7tech@gmail.com</span>
+                <span className="text-slate-600">|</span>
+                <span className="text-emerald-400 font-bold">Search@1959</span>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 text-white">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Digital Identity Admin Dashboard</h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+          <div className="flex items-center space-x-3 mb-1">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Digital Identity Admin Dashboard</h1>
+            <span className="px-2.5 py-0.5 text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full flex items-center space-x-1">
+              <ShieldCheck className="w-3 h-3" />
+              <span>Admin Verified</span>
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-400">
             Manage OCR visiting card profiles, custom slugs, AI enrichment, and QR analytics.
           </p>
         </div>
-        <button
-          onClick={onNavigateToScan}
-          className="px-4 py-2.5 rounded-xl font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20 flex items-center space-x-2 text-sm transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Scan New Card</span>
-        </button>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={handleAdminLogout}
+            className="px-3.5 py-2 rounded-xl font-semibold bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 flex items-center space-x-2 text-xs transition-all"
+            title="Log out of Admin Dashboard"
+          >
+            <LogOut className="w-3.5 h-3.5 text-rose-400" />
+            <span>Sign Out</span>
+          </button>
+          <button
+            onClick={onNavigateToScan}
+            className="px-4 py-2.5 rounded-xl font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20 flex items-center space-x-2 text-sm transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Scan New Card</span>
+          </button>
+        </div>
       </div>
 
       {/* KPI Stats Grid */}
@@ -240,10 +409,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <tr key={c.id} className="hover:bg-slate-800/40 transition-colors">
                     <td className="p-4">
                       <div className="flex items-center space-x-3">
-                        <img
-                          src={c.avatarUrl || c.logoUrl}
-                          alt={c.name}
-                          className="w-9 h-9 rounded-xl object-cover border border-slate-700 bg-slate-950"
+                        <AvatarDisplay
+                          avatarUrl={c.avatarUrl}
+                          logoUrl={c.logoUrl}
+                          name={c.name}
+                          primaryColor={c.primaryColor}
+                          className="w-9 h-9 rounded-xl border border-slate-700 text-xs font-bold overflow-hidden"
                         />
                         <div>
                           <p className="font-bold text-white text-sm">{c.name}</p>

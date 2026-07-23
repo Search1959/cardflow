@@ -26,8 +26,8 @@ const INITIAL_CARDS: CardProfile[] = [
     website: 'https://apexdigital.in',
     address: 'Suite 402, Cyber Tower, HiTech City, Hyderabad, India',
     businessCategory: 'IT Services & Software',
-    logoUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=300&q=80',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+    logoUrl: '',
+    avatarUrl: '',
     bannerUrl: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=1200&q=80',
     cardImageUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80',
     socialLinks: {
@@ -84,8 +84,8 @@ const INITIAL_CARDS: CardProfile[] = [
     website: 'https://luminastudio.co',
     address: '742 Market St, San Francisco, CA 94103, USA',
     businessCategory: 'Design & Branding',
-    logoUrl: 'https://images.unsplash.com/photo-1626785774573-4b799315345d?auto=format&fit=crop&w=300&q=80',
-    avatarUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=400&q=80',
+    logoUrl: '',
+    avatarUrl: '',
     bannerUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
     cardImageUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80',
     socialLinks: {
@@ -136,8 +136,8 @@ const INITIAL_CARDS: CardProfile[] = [
     website: 'https://vanceluxury.com',
     address: '9601 Wilshire Blvd, Beverly Hills, CA 90210',
     businessCategory: 'Real Estate & Properties',
-    logoUrl: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=300&q=80',
-    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
+    logoUrl: '',
+    avatarUrl: '',
     bannerUrl: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
     cardImageUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80',
     socialLinks: {

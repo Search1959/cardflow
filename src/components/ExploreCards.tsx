@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { CardProfile } from '../types.js';
 import { downloadVCard } from '../lib/vcard.js';
+import { AvatarDisplay } from './AvatarDisplay.js';
 
 interface ExploreCardsProps {
   onNavigateToCard: (slug: string) => void;
@@ -150,10 +151,12 @@ export const ExploreCards: React.FC<ExploreCardsProps> = ({
               {/* Card Profile Info */}
               <div className="p-6 -mt-10 relative z-10 space-y-4">
                 <div className="flex items-end justify-between">
-                  <img
-                    src={card.avatarUrl || card.logoUrl}
-                    alt={card.name}
-                    className="w-16 h-16 rounded-2xl border-2 border-slate-900 object-cover shadow-xl bg-slate-950"
+                  <AvatarDisplay
+                    avatarUrl={card.avatarUrl}
+                    logoUrl={card.logoUrl}
+                    name={card.name}
+                    primaryColor={card.primaryColor}
+                    className="w-16 h-16 rounded-2xl border-2 border-slate-900 text-lg font-bold shadow-xl overflow-hidden"
                   />
                   <div className="text-right text-[11px] text-slate-400 font-mono">
                     <span className="text-blue-400 font-bold flex items-center space-x-1 justify-end">
