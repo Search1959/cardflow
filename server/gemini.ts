@@ -2,18 +2,23 @@ import { GoogleGenAI } from '@google/genai';
 import { CardProfile, OCRResult } from '../src/types.js';
 
 function getGeminiClient(): GoogleGenAI | null {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey.trim() === '') {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey.trim() === '' || apiKey.includes('MY_GEMINI') || apiKey.includes('YOUR_GEMINI') || apiKey === 'undefined' || apiKey === 'null') {
+      return null;
+    }
+    return new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        },
+      },
+    });
+  } catch (e) {
+    console.warn('Gemini client initialization skipped:', e);
     return null;
   }
-  return new GoogleGenAI({
-    apiKey,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      },
-    },
-  });
 }
 
 /**

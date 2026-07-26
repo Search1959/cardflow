@@ -35,15 +35,36 @@ export const ExploreCards: React.FC<ExploreCardsProps> = ({
   useEffect(() => {
     async function loadCards() {
       setLoading(true);
+      let fetched: CardProfile[] = [];
       try {
         const res = await fetch('/api/cards');
-        const data = await res.json();
-        setCards(data);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            fetched = data;
+          }
+        }
       } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+        console.warn('Backend cards endpoint unreachable, loading local cards:', err);
       }
+
+      // Merge with localStorage cards for Hostinger / static hosting resilience
+      let localCards: CardProfile[] = [];
+      try {
+        localCards = JSON.parse(localStorage.getItem('cardflow_user_cards') || '[]');
+      } catch (e) {
+        console.warn('LocalStorage parse error:', e);
+      }
+
+      const mergedMap = new Map<string, CardProfile>();
+      [...fetched, ...localCards].forEach((card) => {
+        if (card && card.slug) {
+          mergedMap.set(card.slug, card);
+        }
+      });
+
+      setCards(Array.from(mergedMap.values()));
+      setLoading(false);
     }
     loadCards();
   }, []);

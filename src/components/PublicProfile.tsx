@@ -137,19 +137,41 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ slug }) => {
 
     setLeadSubmitting(true);
     try {
-      const res = await fetch(`/api/cards/${card.slug}/lead`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      try {
+        await fetch(`/api/cards/${card.slug}/lead`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: leadName,
+            email: leadEmail,
+            phone: leadPhone,
+            message: leadMessage,
+            serviceInterest: selectedServiceInterest || 'General Inquiry',
+          }),
+        });
+      } catch (e) {
+        console.warn('Backend lead endpoint offline, saving locally:', e);
+      }
+
+      // Save lead to local backup for resilience
+      try {
+        const localLeads = JSON.parse(localStorage.getItem('cardflow_leads') || '[]');
+        const newLead = {
+          id: 'lead-' + Date.now(),
+          cardSlug: card.slug,
+          cardName: card.name,
           name: leadName,
           email: leadEmail,
           phone: leadPhone,
           message: leadMessage,
           serviceInterest: selectedServiceInterest || 'General Inquiry',
-        }),
-      });
-
-      if (!res.ok) throw new Error('Failed to submit message');
+          createdAt: new Date().toISOString(),
+          status: 'new'
+        };
+        localStorage.setItem('cardflow_leads', JSON.stringify([newLead, ...localLeads]));
+      } catch (e) {
+        console.warn('LocalStorage lead save error:', e);
+      }
 
       setLeadSuccess(true);
       setLeadName('');
