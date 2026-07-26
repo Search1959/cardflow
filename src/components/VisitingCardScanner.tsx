@@ -27,7 +27,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { OCRResult, CardProfile } from '../types.js';
-import { generateClientFallbackOCR } from '../lib/ocrFallback.js';
+import { generateClientFallbackOCR, extractCardDataWithClientOCR } from '../lib/ocrFallback.js';
 import { MapLocationDisplay } from './MapLocationDisplay.js';
 import { BANNER_PRESETS, getBannerForCategory } from '../lib/bannerPresets.js';
 
@@ -276,16 +276,16 @@ export const VisitingCardScanner: React.FC<VisitingCardScannerProps> = ({
           if (data && !data.error) {
             result = data;
           } else {
-            console.warn('Backend returned error payload, running fallback OCR engine');
-            result = generateClientFallbackOCR(compressedSrc);
+            console.warn('Backend returned error payload, running fallback client OCR engine');
+            result = await extractCardDataWithClientOCR(compressedSrc);
           }
         } else {
-          console.warn('Backend OCR endpoint non-200, running fallback OCR engine');
-          result = generateClientFallbackOCR(compressedSrc);
+          console.warn('Backend OCR endpoint non-200, running fallback client OCR engine');
+          result = await extractCardDataWithClientOCR(compressedSrc);
         }
       } catch (fetchErr) {
         console.warn('Network call to OCR endpoint failed, running client fallback OCR engine', fetchErr);
-        result = generateClientFallbackOCR(compressedSrc);
+        result = await extractCardDataWithClientOCR(compressedSrc);
       }
 
       setOcrResult(result);
@@ -311,7 +311,7 @@ export const VisitingCardScanner: React.FC<VisitingCardScannerProps> = ({
       });
     } catch (err: any) {
       console.error('OCR Process Error:', err);
-      const fallbackResult = generateClientFallbackOCR(src);
+      const fallbackResult = await extractCardDataWithClientOCR(src);
       setOcrResult(fallbackResult);
       setFormData({
         name: fallbackResult.name,
