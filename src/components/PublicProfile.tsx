@@ -29,6 +29,7 @@ import { CardProfile, ChatMessage } from '../types.js';
 import { downloadVCard } from '../lib/vcard.js';
 import { AvatarDisplay } from './AvatarDisplay.js';
 import { MapLocationDisplay } from './MapLocationDisplay.js';
+import { getBannerForCategory } from '../lib/bannerPresets.js';
 
 interface PublicProfileProps {
   slug: string;
@@ -314,8 +315,8 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ slug }) => {
           {/* Cover Banner */}
           <div className="h-44 sm:h-56 relative overflow-hidden bg-slate-800">
             <img
-              src={card.bannerUrl || 'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=1200&q=80'}
-              alt="Banner"
+              src={card.bannerUrl || getBannerForCategory(card.businessCategory, card.title)}
+              alt="Profile Cover Banner"
               className="w-full h-full object-cover opacity-80"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
