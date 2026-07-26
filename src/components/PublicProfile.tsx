@@ -72,9 +72,6 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ slug }) => {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  // Visiting Card Image Modal Zoom
-  const [showCardImageModal, setShowCardImageModal] = useState(false);
-
   // Fetch card profile data
   useEffect(() => {
     async function fetchCard() {
@@ -586,191 +583,130 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ slug }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left Column: Physical / Scanned Visiting Card Preview */}
-            <div className="lg:col-span-5 flex flex-col space-y-3">
-              <span className="text-xs font-semibold text-slate-400 flex items-center space-x-1">
-                <Eye className="w-3.5 h-3.5 text-blue-400" />
-                <span>Original Visiting Card Image</span>
-              </span>
-
-              <div
-                onClick={() => card.cardImageUrl && setShowCardImageModal(true)}
-                className={`relative group rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 p-2 shadow-2xl transition-all ${
-                  card.cardImageUrl ? 'cursor-pointer hover:border-blue-500/50 hover:shadow-blue-500/10' : ''
-                }`}
-              >
-                {card.cardImageUrl ? (
-                  <div className="relative aspect-[1.75/1] w-full rounded-xl overflow-hidden bg-slate-900">
-                    <img
-                      src={card.cardImageUrl}
-                      alt="Visiting Card"
-                      className="w-full h-full object-contain group-hover:scale-102 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-2 text-white font-bold text-xs backdrop-blur-xs">
-                      <Eye className="w-4 h-4 text-blue-400" />
-                      <span>Click to Zoom Visiting Card</span>
-                    </div>
-                  </div>
-                ) : (
-                  /* Realistic Digital Visiting Card Fallback */
-                  <div className="aspect-[1.75/1] w-full rounded-xl bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 border border-slate-700/60 p-5 flex flex-col justify-between shadow-inner">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-extrabold text-white text-base leading-tight">{card.name}</h3>
-                        <p className="text-xs text-blue-400 font-medium">{card.title}</p>
-                        <p className="text-[11px] text-slate-400">{card.company}</p>
-                      </div>
-                      <div className="w-8 h-8 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-black text-xs">
-                        {card.name.charAt(0)}
-                      </div>
-                    </div>
-                    <div className="space-y-1 text-[10px] text-slate-300 pt-3 border-t border-slate-800/80">
-                      <p className="flex items-center space-x-1"><Phone className="w-3 h-3 text-emerald-400" /><span>{card.phone}</span></p>
-                      <p className="flex items-center space-x-1"><Mail className="w-3 h-3 text-blue-400" /><span className="truncate">{card.email}</span></p>
-                      {card.website && <p className="flex items-center space-x-1"><Globe className="w-3 h-3 text-indigo-400" /><span className="truncate">{card.website}</span></p>}
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between text-[11px] text-slate-400 px-2 pt-2">
-                  <span>OCR Accuracy Verification</span>
-                  <span className="text-blue-400 font-bold">{card.confidenceScores?.overall || 98}% AI Verified</span>
-                </div>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              {/* Full Name & Title */}
+              <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-3.5 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Full Name & Role</span>
+                <p className="font-extrabold text-white text-sm">{card.name}</p>
+                <p className="text-blue-400 font-medium text-xs">{card.title}</p>
               </div>
+
+              {/* Company & Category */}
+              <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-3.5 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Company & Category</span>
+                <p className="font-extrabold text-white text-sm">{card.company}</p>
+                <p className="text-slate-400 text-xs">{card.businessCategory}</p>
+              </div>
+
+              {/* Direct Phone */}
+              <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-3.5 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center space-x-1">
+                    <Phone className="w-3 h-3 text-emerald-400" />
+                    <span>Phone / Mobile</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(card.phone);
+                      setCopiedField('phone');
+                      setTimeout(() => setCopiedField(null), 2000);
+                    }}
+                    className="text-[10px] text-slate-400 hover:text-white flex items-center space-x-0.5"
+                  >
+                    {copiedField === 'phone' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedField === 'phone' ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+                <a href={`tel:${card.phone}`} className="font-bold text-white hover:text-emerald-400 transition-colors block text-sm">
+                  {card.phone}
+                </a>
+              </div>
+
+              {/* Official Email */}
+              <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-3.5 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center space-x-1">
+                    <Mail className="w-3 h-3 text-blue-400" />
+                    <span>Official Email</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(card.email);
+                      setCopiedField('email');
+                      setTimeout(() => setCopiedField(null), 2000);
+                    }}
+                    className="text-[10px] text-slate-400 hover:text-white flex items-center space-x-0.5"
+                  >
+                    {copiedField === 'email' ? <Check className="w-3 h-3 text-blue-400" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedField === 'email' ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+                <a href={`mailto:${card.email}`} className="font-bold text-white hover:text-blue-400 transition-colors block text-sm truncate">
+                  {card.email}
+                </a>
+              </div>
+
+              {/* Website */}
+              {card.website && (
+                <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-3.5 space-y-1 sm:col-span-2">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center space-x-1">
+                    <Globe className="w-3 h-3 text-indigo-400" />
+                    <span>Official Website</span>
+                  </span>
+                  <a href={card.website} target="_blank" rel="noreferrer" className="font-bold text-indigo-400 hover:underline flex items-center space-x-1 text-xs truncate">
+                    <span>{card.website}</span>
+                    <ExternalLink className="w-3 h-3 shrink-0" />
+                  </a>
+                </div>
+              )}
+
+              {/* Office Address */}
+              {card.address && (
+                <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-3.5 space-y-1 sm:col-span-2">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center space-x-1">
+                    <MapPin className="w-3 h-3 text-rose-400" />
+                    <span>Office Address</span>
+                  </span>
+                  <p className="font-medium text-slate-200 text-xs leading-relaxed">{card.address}</p>
+                </div>
+              )}
             </div>
 
-            {/* Right Column: Detailed Contact Fields Grid */}
-            <div className="lg:col-span-7 space-y-4">
-              <span className="text-xs font-semibold text-slate-400 flex items-center space-x-1">
-                <Building2 className="w-3.5 h-3.5 text-blue-400" />
-                <span>Visiting Card Contact Fields</span>
-              </span>
+            {/* Action Buttons Bar */}
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => downloadVCard(card)}
+                className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center space-x-2 transition-all shadow-md"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download vCard (.vcf)</span>
+              </button>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                {/* Full Name & Title */}
-                <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-3.5 space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Full Name & Role</span>
-                  <p className="font-extrabold text-white text-sm">{card.name}</p>
-                  <p className="text-blue-400 font-medium text-xs">{card.title}</p>
-                </div>
+              <button
+                type="button"
+                onClick={handleOpenQRModal}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center space-x-2 transition-all border border-slate-700"
+              >
+                <QrCode className="w-4 h-4 text-blue-400" />
+                <span>Scan Card QR</span>
+              </button>
 
-                {/* Company & Category */}
-                <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-3.5 space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Company & Category</span>
-                  <p className="font-extrabold text-white text-sm">{card.company}</p>
-                  <p className="text-slate-400 text-xs">{card.businessCategory}</p>
-                </div>
-
-                {/* Direct Phone */}
-                <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-3.5 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center space-x-1">
-                      <Phone className="w-3 h-3 text-emerald-400" />
-                      <span>Phone / Mobile</span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(card.phone);
-                        setCopiedField('phone');
-                        setTimeout(() => setCopiedField(null), 2000);
-                      }}
-                      className="text-[10px] text-slate-400 hover:text-white flex items-center space-x-0.5"
-                    >
-                      {copiedField === 'phone' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                      <span>{copiedField === 'phone' ? 'Copied' : 'Copy'}</span>
-                    </button>
-                  </div>
-                  <a href={`tel:${card.phone}`} className="font-bold text-white hover:text-emerald-400 transition-colors block text-sm">
-                    {card.phone}
-                  </a>
-                </div>
-
-                {/* Official Email */}
-                <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-3.5 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center space-x-1">
-                      <Mail className="w-3 h-3 text-blue-400" />
-                      <span>Official Email</span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(card.email);
-                        setCopiedField('email');
-                        setTimeout(() => setCopiedField(null), 2000);
-                      }}
-                      className="text-[10px] text-slate-400 hover:text-white flex items-center space-x-0.5"
-                    >
-                      {copiedField === 'email' ? <Check className="w-3 h-3 text-blue-400" /> : <Copy className="w-3 h-3" />}
-                      <span>{copiedField === 'email' ? 'Copied' : 'Copy'}</span>
-                    </button>
-                  </div>
-                  <a href={`mailto:${card.email}`} className="font-bold text-white hover:text-blue-400 transition-colors block text-sm truncate">
-                    {card.email}
-                  </a>
-                </div>
-
-                {/* Website */}
-                {card.website && (
-                  <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-3.5 space-y-1 sm:col-span-2">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center space-x-1">
-                      <Globe className="w-3 h-3 text-indigo-400" />
-                      <span>Official Website</span>
-                    </span>
-                    <a href={card.website} target="_blank" rel="noreferrer" className="font-bold text-indigo-400 hover:underline flex items-center space-x-1 text-xs truncate">
-                      <span>{card.website}</span>
-                      <ExternalLink className="w-3 h-3 shrink-0" />
-                    </a>
-                  </div>
-                )}
-
-                {/* Office Address */}
-                {card.address && (
-                  <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-3.5 space-y-1 sm:col-span-2">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center space-x-1">
-                      <MapPin className="w-3 h-3 text-rose-400" />
-                      <span>Office Address</span>
-                    </span>
-                    <p className="font-medium text-slate-200 text-xs leading-relaxed">{card.address}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Action Buttons Bar */}
-              <div className="flex flex-wrap items-center gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => downloadVCard(card)}
-                  className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center space-x-2 transition-all shadow-md"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Download vCard (.vcf)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleOpenQRModal}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center space-x-2 transition-all border border-slate-700"
-                >
-                  <QrCode className="w-4 h-4 text-blue-400" />
-                  <span>Scan Card QR</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(window.location.href);
-                    setCopiedUrl(true);
-                    setTimeout(() => setCopiedUrl(false), 2000);
-                  }}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold flex items-center space-x-2 transition-all border border-slate-700"
-                >
-                  {copiedUrl ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                  <span>{copiedUrl ? 'Link Copied!' : 'Share Profile Link'}</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  setCopiedUrl(true);
+                  setTimeout(() => setCopiedUrl(false), 2000);
+                }}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold flex items-center space-x-2 transition-all border border-slate-700"
+              >
+                {copiedUrl ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                <span>{copiedUrl ? 'Link Copied!' : 'Share Profile Link'}</span>
+              </button>
             </div>
           </div>
         </div>
@@ -978,45 +914,6 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ slug }) => {
             )}
             <div className="text-xs text-slate-400 pt-2 border-t border-slate-800">
               Total Scans: <span className="text-emerald-400 font-bold">{card.qrScansCount + 1}</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Visiting Card Image Zoom Modal */}
-      {showCardImageModal && card.cardImageUrl && (
-        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in-50">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-2xl w-full text-center space-y-4 relative text-white shadow-2xl">
-            <button
-              onClick={() => setShowCardImageModal(false)}
-              className="absolute top-4 right-4 p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-full transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <div className="flex items-center space-x-2 text-blue-400">
-              <CreditCard className="w-5 h-5" />
-              <h3 className="font-bold text-lg text-white">Original Visiting Card Image</h3>
-            </div>
-            <p className="text-xs text-slate-400 text-left">
-              High-resolution photo scan extracted by Gemini AI OCR engine for {card.name} ({card.company}).
-            </p>
-
-            <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800 max-h-[70vh] overflow-auto flex items-center justify-center">
-              <img
-                src={card.cardImageUrl}
-                alt={`${card.name} Visiting Card`}
-                className="max-w-full max-h-[60vh] object-contain rounded-xl shadow-xl"
-              />
-            </div>
-
-            <div className="flex items-center justify-between pt-2 text-xs">
-              <span className="text-slate-400">AI Confidence: <strong className="text-emerald-400">{card.confidenceScores?.overall || 98}% Accuracy</strong></span>
-              <button
-                onClick={() => setShowCardImageModal(false)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs"
-              >
-                Close Preview
-              </button>
             </div>
           </div>
         </div>
