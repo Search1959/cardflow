@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { OCRResult, CardProfile } from '../types.js';
 import { generateClientFallbackOCR, extractCardDataWithClientOCR } from '../lib/ocrFallback.js';
+import { tryDirectClientGeminiOCR } from '../lib/clientGeminiOCR.js';
 import { saveCardGlobally, getShareableCardUrls } from '../lib/globalSync.js';
 import { MapLocationDisplay } from './MapLocationDisplay.js';
 import { BANNER_PRESETS, getBannerForCategory } from '../lib/bannerPresets.js';
@@ -224,6 +225,16 @@ export const VisitingCardScanner: React.FC<VisitingCardScannerProps> = ({
 
     const ctx = canvas.getContext('2d');
     if (ctx) {
+      // Un-mirror image if camera is user-facing front webcam so card text reads correctly left-to-right
+      const track = mediaStreamRef.current?.getVideoTracks()[0];
+      const facing = track?.getSettings()?.facingMode;
+      const isFrontFacing = facing === 'user' || !facing;
+
+      if (isFrontFacing) {
+        ctx.translate(targetWidth, 0);
+        ctx.scale(-1, 1);
+      }
+
       ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
       const snapshotBase64 = canvas.toDataURL('image/jpeg', 0.85);
       setSelectedImage(snapshotBase64);
@@ -304,8 +315,9 @@ export const VisitingCardScanner: React.FC<VisitingCardScannerProps> = ({
 
     try {
       const compressedSrc = await compressImage(src, 1200);
-      let result: OCRResult;
+      let result: OCRResult | null = null;
 
+      // 1. Attempt Server-side Express / Vercel Serverless API (/api/cards/ocr or /api/ocr)
       try {
         const response = await fetch('/api/cards/ocr', {
           method: 'POST',
@@ -318,18 +330,25 @@ export const VisitingCardScanner: React.FC<VisitingCardScannerProps> = ({
 
         if (response.ok) {
           const data = await response.json();
-          if (data && !data.error) {
+          if (data && !data.error && data.name !== undefined) {
             result = data;
-          } else {
-            console.warn('Backend returned error payload, running fallback client OCR engine');
-            result = await extractCardDataWithClientOCR(compressedSrc);
           }
-        } else {
-          console.warn('Backend OCR endpoint non-200, running fallback client OCR engine');
-          result = await extractCardDataWithClientOCR(compressedSrc);
         }
       } catch (fetchErr) {
-        console.warn('Network call to OCR endpoint failed, running client fallback OCR engine', fetchErr);
+        console.warn('Server endpoint /api/cards/ocr unreachable or offline:', fetchErr);
+      }
+
+      // 2. If Server API was unreachable or failed (e.g. static Vercel host without backend process), attempt direct client Gemini API
+      if (!result) {
+        try {
+          result = await tryDirectClientGeminiOCR(compressedSrc);
+        } catch (clientGeminiErr) {
+          console.warn('Direct client Gemini API failed:', clientGeminiErr);
+        }
+      }
+
+      // 3. Fallback to client-side Tesseract OCR engine if no Gemini AI result was produced
+      if (!result) {
         result = await extractCardDataWithClientOCR(compressedSrc);
       }
 
