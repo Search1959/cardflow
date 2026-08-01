@@ -1,5 +1,5 @@
 import { CardProfile } from '../types.js';
-import { saveCardToFirestore, getCardFromFirestore } from './firebase.js';
+import { saveCardToFirestore, getCardFromFirestore, deleteCardFromFirestore } from './firebase.js';
 import { INITIAL_CARDS } from './initialCards.js';
 import { getBannerForCategory } from './bannerPresets.js';
 
@@ -172,13 +172,15 @@ export function generateCardFromSlug(slug: string): CardProfile {
 
   const bannerUrl = getBannerForCategory(category, 'Executive');
 
-  return {
+  const generatedBio = `${name} is an accomplished ${category === 'Finance & Venture Capital' ? 'Senior Relationship Manager' : 'Senior Executive'} at ${company}, operating at the intersection of strategic innovation, organizational leadership, and executive client management in ${category}.\n\nWith extensive industry experience and a proven track record, ${name} drives business expansion, operational efficiency, and high-value partnership initiatives. Known for a collaborative management approach, ${name} leads multi-disciplinary efforts to deliver scalable solutions and maintain exceptional quality standards across all enterprise commitments.\n\nDedicated to ongoing innovation and customer-centric leadership, ${name} continues to advance market presence and deliver measurable value for partners and institutional stakeholders.`;
+
+  return sanitizeAndEnrichCardAIContent({
     id: 'card-' + slug,
     slug: slug,
     name: name,
     title: category === 'Finance & Venture Capital' ? 'Senior Relationship Manager & Executive' : 'Senior Managing Consultant',
     company: company,
-    tagline: `Excellence in ${category} & Enterprise Client Relations`,
+    tagline: `Excellence in ${category} & Strategic Enterprise Leadership`,
     email: email,
     phone: '+91 98765 43210',
     whatsapp: '+91 98765 43210',
@@ -195,7 +197,7 @@ export function generateCardFromSlug(slug: string): CardProfile {
     primaryColor: category === 'Finance & Venture Capital' ? '#1d4ed8' : '#0284c7',
     secondaryColor: '#3b82f6',
     themeStyle: 'executive',
-    bio: `${name} is an accomplished specialist and Senior Executive at ${company}. Demonstrating extensive expertise in ${category}, ${name} drives client growth, strategic management, and high-impact partnership development.`,
+    bio: generatedBio,
     services: [
       {
         id: 's1',
@@ -247,6 +249,76 @@ export function generateCardFromSlug(slug: string): CardProfile {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     aiChatEnabled: true,
+  });
+}
+
+/**
+ * Sanitizes and enriches a card with complete AI biography, tagline, services, and FAQs
+ */
+export function sanitizeAndEnrichCardAIContent(card: CardProfile): CardProfile {
+  if (!card) return card;
+
+  const name = card.name || 'Executive Contact';
+  const company = card.company || 'Enterprise Solutions';
+  const title = card.title || 'Senior Executive';
+  const category = card.businessCategory || 'IT Services & Software';
+
+  let tagline = card.tagline || '';
+  if (!tagline || tagline.toLowerCase().startsWith('official digital contact profile')) {
+    tagline = company
+      ? `Driving Strategic Innovation & Enterprise Leadership at ${company}`
+      : `Delivering Strategic Leadership & Excellence in ${category}`;
+  }
+
+  let bio = card.bio || '';
+  if (!bio || bio.trim().length < 60 || bio.toLowerCase().startsWith('official digital contact profile')) {
+    bio = `${name} is an accomplished ${title} at ${company}, operating at the intersection of strategic innovation, organizational leadership, and executive client management in ${category}.\n\nWith extensive industry experience and a proven track record, ${name} drives business expansion, operational efficiency, and high-value partnership initiatives. Known for a collaborative management approach, ${name} leads multi-disciplinary efforts to deliver scalable solutions and maintain exceptional quality standards across all enterprise commitments.\n\nDedicated to ongoing innovation and customer-centric leadership, ${name} continues to advance market presence and deliver measurable value for partners and institutional stakeholders.`;
+  }
+
+  const services = card.services && card.services.length > 0 ? card.services : [
+    {
+      id: 's1',
+      title: `${category} Advisory & Strategy`,
+      description: `Tailored strategic consultation and enterprise solutions delivered by ${name} at ${company}.`,
+      price: 'Custom Advisory',
+    },
+    {
+      id: 's2',
+      title: 'Executive Client Relations & Leadership',
+      description: 'End-to-end management of high-value partnerships and organizational projects.',
+      price: 'Institutional Rates',
+    },
+  ];
+
+  const products = card.products && card.products.length > 0 ? card.products : [
+    {
+      id: 'p1',
+      name: `${company} Enterprise Solution Package`,
+      description: `Comprehensive roadmap and digital transformation assessment for enterprise clients.`,
+      price: 'Custom Rate',
+      imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&q=80',
+      category: category,
+    },
+  ];
+
+  const faqs = card.faqs && card.faqs.length > 0 ? card.faqs : [
+    {
+      question: `What services does ${company} specialize in?`,
+      answer: `${company} specializes in ${category} solutions, strategic advisory, and client leadership under ${name}.`,
+    },
+    {
+      question: 'How can I schedule a consultation or connect?',
+      answer: `You can send a message directly using the contact form on this page or connect via WhatsApp at ${card.whatsapp || card.phone || 'our direct contact line'}.`,
+    },
+  ];
+
+  return {
+    ...card,
+    tagline,
+    bio,
+    services,
+    products,
+    faqs,
   };
 }
 
@@ -309,6 +381,50 @@ export async function saveCardGlobally(card: CardProfile): Promise<CardProfile> 
 }
 
 /**
+ * Deletes card profile globally from Firestore, LocalStorage, KV Store, and Express server API.
+ */
+export async function deleteCardGlobally(slugOrId: string): Promise<boolean> {
+  if (!slugOrId) return false;
+  const cleanKey = slugOrId.toLowerCase().trim();
+
+  // 1. Delete from Firebase Firestore
+  try {
+    await deleteCardFromFirestore(cleanKey);
+  } catch (e) {
+    console.warn('Firebase delete error:', e);
+  }
+
+  // 2. Delete from LocalStorage
+  try {
+    const existing = JSON.parse(localStorage.getItem('cardflow_user_cards') || '[]');
+    const filtered = existing.filter((c: CardProfile) => c.slug !== cleanKey && c.id !== slugOrId);
+    localStorage.setItem('cardflow_user_cards', JSON.stringify(filtered));
+  } catch (e) {
+    console.warn('LocalStorage delete error:', e);
+  }
+
+  // 3. Delete from Express server
+  try {
+    await fetch(`/api/cards/${encodeURIComponent(slugOrId)}`, {
+      method: 'DELETE',
+    });
+  } catch (e) {
+    console.warn('Backend API delete error:', e);
+  }
+
+  // 4. Delete from KV Store
+  try {
+    await fetch(`${KV_BASE_URL}/card_${cleanKey}`, {
+      method: 'DELETE',
+    });
+  } catch (e) {
+    console.warn('KV Store delete error:', e);
+  }
+
+  return true;
+}
+
+/**
  * Retrieves a card profile from all available global sources (Firestore DB -> INITIAL_CARDS -> Direct URL Param -> Backend -> Cloud KV -> LocalStorage -> Auto-Generator)
  */
 export async function getCardGloballyBySlug(slug: string, searchParams?: URLSearchParams): Promise<CardProfile | null> {
@@ -325,13 +441,14 @@ export async function getCardGloballyBySlug(slug: string, searchParams?: URLSear
   try {
     const firestoreCard = await getCardFromFirestore(targetSlug);
     if (firestoreCard && firestoreCard.name) {
+      const enriched = sanitizeAndEnrichCardAIContent(firestoreCard);
       // Cache to LocalStorage
       try {
         const existing = JSON.parse(localStorage.getItem('cardflow_user_cards') || '[]');
-        const filtered = existing.filter((c: CardProfile) => c.slug !== firestoreCard.slug);
-        localStorage.setItem('cardflow_user_cards', JSON.stringify([firestoreCard, ...filtered]));
+        const filtered = existing.filter((c: CardProfile) => c.slug !== enriched.slug);
+        localStorage.setItem('cardflow_user_cards', JSON.stringify([enriched, ...filtered]));
       } catch (e) {}
-      return firestoreCard;
+      return enriched;
     }
   } catch (e) {
     console.warn('Firestore fetch error:', e);
@@ -345,8 +462,9 @@ export async function getCardGloballyBySlug(slug: string, searchParams?: URLSear
       c.slug.toLowerCase().startsWith(targetSlug)
   );
   if (presetMatch) {
-    saveCardGlobally(presetMatch).catch(() => {});
-    return presetMatch;
+    const enrichedPreset = sanitizeAndEnrichCardAIContent(presetMatch);
+    saveCardGlobally(enrichedPreset).catch(() => {});
+    return enrichedPreset;
   }
 
   // 3. Check URL query parameters for embedded card data payload (?d=... or ?card=...)
@@ -355,8 +473,9 @@ export async function getCardGloballyBySlug(slug: string, searchParams?: URLSear
     if (dataParam) {
       const decodedCard = decodeCardFromUrlParam(dataParam);
       if (decodedCard) {
-        saveCardGlobally(decodedCard).catch(() => {});
-        return decodedCard;
+        const enrichedDecoded = sanitizeAndEnrichCardAIContent(decodedCard);
+        saveCardGlobally(enrichedDecoded).catch(() => {});
+        return enrichedDecoded;
       }
     }
   }
@@ -367,13 +486,14 @@ export async function getCardGloballyBySlug(slug: string, searchParams?: URLSear
     if (res.ok) {
       const card: CardProfile = await res.json();
       if (card && card.slug) {
-        saveCardToFirestore(card).catch(() => {});
+        const enrichedCard = sanitizeAndEnrichCardAIContent(card);
+        saveCardToFirestore(enrichedCard).catch(() => {});
         try {
           const existing = JSON.parse(localStorage.getItem('cardflow_user_cards') || '[]');
-          const filtered = existing.filter((c: CardProfile) => c.slug !== card.slug);
-          localStorage.setItem('cardflow_user_cards', JSON.stringify([card, ...filtered]));
+          const filtered = existing.filter((c: CardProfile) => c.slug !== enrichedCard.slug);
+          localStorage.setItem('cardflow_user_cards', JSON.stringify([enrichedCard, ...filtered]));
         } catch (e) {}
-        return card;
+        return enrichedCard;
       }
     }
   } catch (e) {
@@ -386,13 +506,14 @@ export async function getCardGloballyBySlug(slug: string, searchParams?: URLSear
     if (kvRes.ok) {
       const kvCard: CardProfile = await kvRes.json();
       if (kvCard && kvCard.name) {
-        saveCardToFirestore(kvCard).catch(() => {});
+        const enrichedKv = sanitizeAndEnrichCardAIContent(kvCard);
+        saveCardToFirestore(enrichedKv).catch(() => {});
         try {
           const existing = JSON.parse(localStorage.getItem('cardflow_user_cards') || '[]');
-          const filtered = existing.filter((c: CardProfile) => c.slug !== kvCard.slug);
-          localStorage.setItem('cardflow_user_cards', JSON.stringify([kvCard, ...filtered]));
+          const filtered = existing.filter((c: CardProfile) => c.slug !== enrichedKv.slug);
+          localStorage.setItem('cardflow_user_cards', JSON.stringify([enrichedKv, ...filtered]));
         } catch (e) {}
-        return kvCard;
+        return enrichedKv;
       }
     }
   } catch (e) {
@@ -410,14 +531,15 @@ export async function getCardGloballyBySlug(slug: string, searchParams?: URLSear
         c.slug.toLowerCase().includes(targetSlug)
     );
     if (matched) {
-      saveCardGlobally(matched).catch(() => {});
-      return matched;
+      const enrichedMatched = sanitizeAndEnrichCardAIContent(matched);
+      saveCardGlobally(enrichedMatched).catch(() => {});
+      return enrichedMatched;
     }
   } catch (e) {
     console.warn('LocalStorage read error:', e);
   }
 
-  // 7. Dynamic Auto-Generator fallback for any slug (e.g. nabanita-chakraborty-idbi-bank-limited-4089)
+  // 7. Dynamic Auto-Generator fallback for any slug
   const autoCard = generateCardFromSlug(targetSlug);
   saveCardGlobally(autoCard).catch(() => {});
   return autoCard;

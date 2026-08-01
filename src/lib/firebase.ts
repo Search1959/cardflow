@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, doc, setDoc, getDoc, getDocs, collection, query, where } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, getDocs, collection, query, where, deleteDoc } from 'firebase/firestore';
 import { CardProfile } from '../types.js';
 
 // Firebase configuration from auto-provisioned project
@@ -101,5 +101,38 @@ export async function getAllCardsFromFirestore(): Promise<CardProfile[]> {
   } catch (err) {
     console.warn('[Firestore] Error fetching all cards from cloud database:', err);
     return [];
+  }
+}
+
+/**
+ * Deletes a card profile from Firebase Firestore database.
+ */
+export async function deleteCardFromFirestore(slugOrId: string): Promise<boolean> {
+  try {
+    const cleanSlug = slugOrId.toLowerCase().trim();
+    if (!cleanSlug) return false;
+
+    // 1. Delete direct document by slug
+    const cardRef = doc(db, 'cards', cleanSlug);
+    await deleteDoc(cardRef);
+
+    // 2. Query matching slug or id
+    const qSlug = query(collection(db, 'cards'), where('slug', '==', cleanSlug));
+    const snapSlug = await getDocs(qSlug);
+    for (const d of snapSlug.docs) {
+      await deleteDoc(d.ref);
+    }
+
+    const qId = query(collection(db, 'cards'), where('id', '==', slugOrId));
+    const snapId = await getDocs(qId);
+    for (const d of snapId.docs) {
+      await deleteDoc(d.ref);
+    }
+
+    console.log(`[Firestore] Deleted card '${cleanSlug}' from cloud database`);
+    return true;
+  } catch (err) {
+    console.warn('[Firestore] Error deleting card from cloud database:', err);
+    return false;
   }
 }

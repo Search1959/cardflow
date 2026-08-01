@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
-import { getCardGloballyBySlug, getShareableCardUrls } from '../lib/globalSync.js';
+import { getCardGloballyBySlug, getShareableCardUrls, saveCardGlobally } from '../lib/globalSync.js';
 import {
   Phone,
   Mail,
@@ -28,6 +28,7 @@ import {
   CreditCard,
   Eye,
   UserCheck,
+  Loader2,
   AtSign
 } from 'lucide-react';
 import { CardProfile, ChatMessage } from '../types.js';
@@ -72,6 +73,45 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ slug }) => {
   // Copy URL & Field state
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  // AI Bio Regenerate state
+  const [isRegeneratingAIBio, setIsRegeneratingAIBio] = useState(false);
+
+  const handleRegenerateAIBio = async () => {
+    if (!card) return;
+    setIsRegeneratingAIBio(true);
+    try {
+      const res = await fetch('/api/cards/generate-bio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: card.name,
+          title: card.title,
+          company: card.company,
+          businessCategory: card.businessCategory,
+          tagline: card.tagline,
+        }),
+      });
+
+      let newBio = '';
+      if (res.ok) {
+        const result = await res.json();
+        newBio = result.bio;
+      }
+
+      if (!newBio) {
+        newBio = `${card.name} is an accomplished ${card.title || 'Senior Executive'} at ${card.company || 'Enterprise Solutions'}, operating at the intersection of strategic innovation, organizational leadership, and executive client management in ${card.businessCategory || 'IT Services & Software'}.\n\nWith extensive industry experience and a proven track record, ${card.name} drives business expansion, operational efficiency, and high-value partnership initiatives. Known for a collaborative management approach, ${card.name} leads multi-disciplinary efforts to deliver scalable solutions and maintain exceptional quality standards across all enterprise commitments.\n\nDedicated to ongoing innovation and customer-centric leadership, ${card.name} continues to advance market presence and deliver measurable value for partners and institutional stakeholders.`;
+      }
+
+      const updatedCard = { ...card, bio: newBio };
+      setCard(updatedCard);
+      await saveCardGlobally(updatedCard);
+    } catch (err) {
+      console.warn('Failed to regenerate bio:', err);
+    } finally {
+      setIsRegeneratingAIBio(false);
+    }
+  };
 
   const cleanSlug = (slug || '')
     .replace(/^\/*(card\/)*/i, '')
@@ -454,19 +494,68 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ slug }) => {
         </div>
 
         {/* Executive Bio & AI Tagline */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4">
-          <div className="flex items-center space-x-2 text-blue-400 text-xs font-extrabold uppercase tracking-widest">
-            <Sparkles className="w-4 h-4" />
-            <span>AI Executive Biography</span>
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 relative overflow-hidden group">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+            <div className="flex items-center space-x-2 text-blue-400 text-xs font-extrabold uppercase tracking-widest">
+              <Sparkles className="w-4 h-4 text-blue-400 animate-pulse" />
+              <span>AI Executive Biography</span>
+              <span className="px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 text-[10px] text-blue-300 font-semibold rounded-full normal-case tracking-normal">
+                Powered by Gemini AI
+              </span>
+            </div>
+            <button
+              onClick={handleRegenerateAIBio}
+              disabled={isRegeneratingAIBio}
+              className="px-3 py-1.5 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/30 text-blue-300 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 shadow-sm"
+              title="Generate a fresh expanded executive biography using Gemini AI"
+            >
+              {isRegeneratingAIBio ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+              )}
+              <span>{isRegeneratingAIBio ? 'Enriching...' : '✨ Re-Generate Bio'}</span>
+            </button>
           </div>
-          {card.tagline && (
-            <p className="text-lg sm:text-xl font-bold italic text-slate-200 border-l-4 border-blue-500 pl-4 py-1">
+
+          {/* Tagline Headline */}
+          {card.tagline && !card.tagline.toLowerCase().startsWith('official digital contact profile') && (
+            <p className="text-lg sm:text-xl font-bold italic text-slate-100 border-l-4 border-blue-500 pl-4 py-1.5 leading-snug">
               "{card.tagline}"
             </p>
           )}
-          <p className="text-slate-300 text-sm sm:text-base leading-relaxed whitespace-pre-line">
-            {card.bio}
-          </p>
+
+          {/* Full Bio Paragraphs */}
+          <div className="text-slate-300 text-sm sm:text-base leading-relaxed whitespace-pre-line space-y-3 font-normal">
+            {card.bio && card.bio.trim().length > 40 && !card.bio.toLowerCase().startsWith('official digital contact profile') ? (
+              card.bio
+            ) : (
+              `${card.name} is a distinguished ${card.title || 'Senior Executive'} at ${card.company || 'Enterprise Solutions'}, driving strategic growth, organizational excellence, and key account management in ${card.businessCategory || 'IT Services & Software'}.\n\nWith extensive experience in leadership and business management, ${card.name} spearheads operational innovation, cross-functional collaboration, and high-impact client partnerships.\n\nCommitted to technical vision and customer satisfaction, ${card.name} continues to position ${card.company || 'the organization'} at the forefront of market leadership.`
+            )}
+          </div>
+
+          {/* Core Competencies Badges */}
+          <div className="pt-2 border-t border-slate-800/60">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">Key Focus Areas & Competencies</p>
+            <div className="flex flex-wrap gap-2">
+              <span className="px-3 py-1 bg-slate-950 border border-slate-800 text-slate-300 rounded-full text-xs font-medium flex items-center space-x-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                <span>Strategic Leadership & Vision</span>
+              </span>
+              <span className="px-3 py-1 bg-slate-950 border border-slate-800 text-slate-300 rounded-full text-xs font-medium flex items-center space-x-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <span>Enterprise Client Relations</span>
+              </span>
+              <span className="px-3 py-1 bg-slate-950 border border-slate-800 text-slate-300 rounded-full text-xs font-medium flex items-center space-x-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                <span>Operational Innovation</span>
+              </span>
+              <span className="px-3 py-1 bg-slate-950 border border-slate-800 text-slate-300 rounded-full text-xs font-medium flex items-center space-x-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                <span>Scalable Growth Strategy</span>
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Services Showcase */}

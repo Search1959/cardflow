@@ -297,9 +297,10 @@ export function saveCard(card: CardProfile): CardProfile {
   return card;
 }
 
-export function deleteCard(id: string): boolean {
+export function deleteCard(idOrSlug: string): boolean {
   const cards = getCards();
-  const filtered = cards.filter((c) => c.id !== id);
+  const cleanKey = idOrSlug.toLowerCase().trim();
+  const filtered = cards.filter((c) => c.id !== idOrSlug && c.slug.toLowerCase() !== cleanKey);
   if (filtered.length < cards.length) {
     saveCards(filtered);
     return true;

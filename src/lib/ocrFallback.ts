@@ -123,17 +123,29 @@ export function parseRawTextToCardData(rawText: string): OCRResult {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
 
+  const displayName = name || 'Business Leader';
+  const displayCompany = company || 'Enterprise Solutions';
+  const displayTitle = title || 'Senior Executive';
+  const displayCategory = 'IT Services & Software';
+
+  const generatedTagline = company
+    ? `Driving Strategic Innovation & Enterprise Excellence at ${company}`
+    : `Delivering Strategic Leadership & Excellence in ${displayCategory}`;
+
+  const generatedBio = `${displayName} is a distinguished ${displayTitle} at ${displayCompany}, specializing in ${displayCategory} and strategic enterprise development. With extensive expertise in corporate growth, client management, and multi-disciplinary leadership, ${displayName} spearheads high-impact operations and partnership initiatives.\n\nThroughout their career, ${displayName} has consistently driven organizational transformation through a commitment to high standards, technical vision, and customer-centric strategies. At ${displayCompany}, ${displayName} oversees core strategic vision and fosters collaborative growth across enterprise functions.\n\nDedicated to ongoing innovation and operational excellence, ${displayName} continues to advance market impact and deliver scalable value for clients and institutional stakeholders.`;
+
   return {
     name: name,
     title: title,
     company: company,
-    tagline: name ? `Official digital contact profile for ${name}` : '',
+    tagline: generatedTagline,
+    bio: generatedBio,
     email: email,
     phone: phone,
     whatsapp: whatsapp || phone,
     website: website,
     address: address,
-    businessCategory: 'IT Services & Software',
+    businessCategory: displayCategory,
     socialLinks: {},
     primaryColor: '#1d4ed8',
     confidenceScores: {

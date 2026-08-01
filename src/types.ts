@@ -127,6 +127,7 @@ export interface OCRResult {
   title: string;
   company: string;
   tagline?: string;
+  bio?: string;
   email: string;
   phone: string;
   whatsapp?: string;

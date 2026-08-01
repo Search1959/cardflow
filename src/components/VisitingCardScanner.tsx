@@ -23,6 +23,7 @@ import {
   SwitchCamera,
   Check,
   MessageSquare,
+  Loader2,
   Share2,
   Image as ImageIcon,
   RotateCw,
@@ -92,6 +93,7 @@ export const VisitingCardScanner: React.FC<VisitingCardScannerProps> = ({
     title: '',
     company: '',
     tagline: '',
+    bio: '',
     email: '',
     phone: '',
     whatsapp: '',
@@ -104,6 +106,43 @@ export const VisitingCardScanner: React.FC<VisitingCardScannerProps> = ({
   });
 
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isGeneratingBio, setIsGeneratingBio] = useState(false);
+
+  const handleGenerateAIBio = async () => {
+    setIsGeneratingBio(true);
+    try {
+      const res = await fetch('/api/cards/generate-bio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          title: formData.title,
+          company: formData.company,
+          businessCategory: formData.businessCategory,
+          tagline: formData.tagline,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.bio) {
+          setFormData((prev) => ({ ...prev, bio: data.bio }));
+        }
+      } else {
+        const name = formData.name || 'Executive Contact';
+        const company = formData.company || 'Enterprise Solutions';
+        const title = formData.title || 'Senior Executive';
+        const category = formData.businessCategory || 'IT Services & Software';
+
+        const fallbackBio = `${name} is an accomplished ${title} at ${company}, operating at the intersection of strategic innovation, organizational leadership, and executive client management in ${category}.\n\nWith extensive industry experience and a proven track record, ${name} drives business expansion, operational efficiency, and high-value partnership initiatives. Known for a collaborative management approach, ${name} leads multi-disciplinary efforts to deliver scalable solutions and maintain exceptional quality standards across all enterprise commitments.\n\nDedicated to ongoing innovation and customer-centric leadership, ${name} continues to advance market presence and deliver measurable value for partners and institutional stakeholders.`;
+
+        setFormData((prev) => ({ ...prev, bio: fallbackBio }));
+      }
+    } catch (e) {
+      console.warn('Bio generation error:', e);
+    } finally {
+      setIsGeneratingBio(false);
+    }
+  };
 
   // Clean up media stream when component unmounts or modal closes
   const stopCameraStream = () => {
@@ -359,7 +398,8 @@ export const VisitingCardScanner: React.FC<VisitingCardScannerProps> = ({
         name: result.name || '',
         title: result.title || '',
         company: result.company || '',
-        tagline: result.tagline || '',
+        tagline: result.tagline || (result.company ? `Driving Strategic Innovation & Enterprise Excellence at ${result.company}` : `Excellence in ${result.businessCategory || 'IT Services & Software'}`),
+        bio: result.bio || '',
         email: result.email || '',
         phone: result.phone || '',
         whatsapp: result.whatsapp || result.phone || '',
@@ -382,6 +422,7 @@ export const VisitingCardScanner: React.FC<VisitingCardScannerProps> = ({
         title: fallbackResult.title,
         company: fallbackResult.company,
         tagline: fallbackResult.tagline,
+        bio: fallbackResult.bio,
         email: fallbackResult.email,
         phone: fallbackResult.phone,
         whatsapp: fallbackResult.whatsapp,
@@ -750,6 +791,51 @@ export const VisitingCardScanner: React.FC<VisitingCardScannerProps> = ({
                   <option value="Food, Dining & Hospitality">Food, Dining & Hospitality</option>
                   <option value="Manufacturing & Industrial">Manufacturing & Industrial</option>
                 </select>
+              </div>
+
+              {/* AI Value Proposition Tagline */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1 flex items-center justify-between">
+                  <span>AI Value Proposition Tagline</span>
+                  <span className="text-[10px] text-blue-400 font-medium">Executive Headline</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.tagline || ''}
+                  onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
+                  placeholder="e.g. Driving Strategic Innovation & Enterprise Leadership"
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+
+              {/* AI Executive Biography Field */}
+              <div className="col-span-1 md:col-span-2">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-semibold text-slate-300 flex items-center space-x-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                    <span>AI Executive Biography</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateAIBio}
+                    disabled={isGeneratingBio}
+                    className="text-xs text-blue-400 hover:text-blue-300 font-semibold flex items-center space-x-1 bg-blue-500/10 hover:bg-blue-500/20 px-2.5 py-1 rounded-lg border border-blue-500/20 transition-all"
+                  >
+                    {isGeneratingBio ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                    )}
+                    <span>{isGeneratingBio ? 'Generating...' : '✨ Re-Generate AI Bio'}</span>
+                  </button>
+                </div>
+                <textarea
+                  rows={4}
+                  value={formData.bio || ''}
+                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                  placeholder="Comprehensive professional AI biography highlighting executive leadership, strategic vision, and corporate impact..."
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm focus:border-blue-500 focus:outline-none leading-relaxed text-slate-200"
+                />
               </div>
 
               <div>
