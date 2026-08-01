@@ -114,42 +114,36 @@ export function parseRawTextToCardData(rawText: string): OCRResult {
 
   // Fallbacks if regex missed specific items
   if (!name && lines.length > 0) {
-    name = lines[0].replace(/[^a-zA-Z\s]/g, '').trim() || 'Business Contact';
-  }
-  if (!title) {
-    title = 'Business Representative';
-  }
-  if (!company) {
-    company = 'Corporate Enterprise';
+    name = lines[0].replace(/[^a-zA-Z\s]/g, '').trim();
   }
 
   // Generate clean slug
-  const slugBase = `${name}-${company}`
+  const slugBase = `${name || 'card'}-${company || 'profile'}`
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
 
   return {
-    name: name || 'Business Contact',
-    title: title || 'Professional Representative',
-    company: company || 'Enterprise',
-    tagline: `Official digital contact identity for ${name}`,
-    email: email || 'contact@business.com',
-    phone: phone || '+1 (555) 000-0000',
-    whatsapp: whatsapp || phone || '+1 (555) 000-0000',
-    website: website || '',
-    address: address || '',
+    name: name,
+    title: title,
+    company: company,
+    tagline: name ? `Official digital contact profile for ${name}` : '',
+    email: email,
+    phone: phone,
+    whatsapp: whatsapp || phone,
+    website: website,
+    address: address,
     businessCategory: 'IT Services & Software',
     socialLinks: {},
     primaryColor: '#1d4ed8',
     confidenceScores: {
       overall: Math.min(95, Math.max(70, Math.floor(rawText.length / 5))),
-      name: name ? 90 : 60,
-      email: email ? 95 : 50,
-      phone: phone ? 95 : 50,
-      company: company ? 90 : 60,
-      website: website ? 90 : 40,
-      address: address ? 85 : 40,
+      name: name ? 90 : 30,
+      email: email ? 95 : 30,
+      phone: phone ? 95 : 30,
+      company: company ? 90 : 30,
+      website: website ? 90 : 30,
+      address: address ? 85 : 30,
     },
     suggestedSlug: `${slugBase}-${Math.floor(1000 + Math.random() * 9000)}`,
     rawText,

@@ -24,7 +24,9 @@ import {
   Check,
   MessageSquare,
   Share2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  RotateCw,
+  FlipHorizontal
 } from 'lucide-react';
 import { OCRResult, CardProfile } from '../types.js';
 import { generateClientFallbackOCR, extractCardDataWithClientOCR } from '../lib/ocrFallback.js';
@@ -248,6 +250,48 @@ export const VisitingCardScanner: React.FC<VisitingCardScannerProps> = ({
     }
   };
 
+  const handleRotateImage = () => {
+    if (!selectedImage) return;
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.height;
+      canvas.height = img.width;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((90 * Math.PI) / 180);
+        ctx.drawImage(img, -img.width / 2, -img.height / 2);
+        const rotated = canvas.toDataURL('image/jpeg', 0.88);
+        setSelectedImage(rotated);
+        setOcrResult(null);
+        runOCR(rotated);
+      }
+    };
+    img.src = selectedImage;
+  };
+
+  const handleFlipImage = () => {
+    if (!selectedImage) return;
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(img, 0, 0);
+        const flipped = canvas.toDataURL('image/jpeg', 0.88);
+        setSelectedImage(flipped);
+        setOcrResult(null);
+        runOCR(flipped);
+      }
+    };
+    img.src = selectedImage;
+  };
+
   const runOCR = async (imageSrcToUse?: string) => {
     const src = imageSrcToUse || selectedImage;
     if (!src) {
@@ -456,22 +500,56 @@ export const VisitingCardScanner: React.FC<VisitingCardScannerProps> = ({
               />
 
               {selectedImage ? (
-                <div className="relative rounded-lg overflow-hidden border border-slate-700 bg-slate-900 aspect-[16/10]">
-                  <img
-                    src={selectedImage}
-                    alt="Visiting Card Preview"
-                    className="w-full h-full object-cover"
-                  />
-                  {/* Scan Laser effect when scanning */}
-                  {isScanning && (
-                    <div className="absolute inset-0 bg-blue-500/20 backdrop-blur-[1px] flex flex-col items-center justify-center space-y-3">
-                      <div className="w-full h-1 bg-gradient-to-r from-transparent via-blue-400 to-transparent animate-pulse shadow-lg shadow-blue-500" />
-                      <div className="px-3 py-1 bg-slate-900/90 text-blue-400 text-xs font-bold rounded-full border border-blue-500/30 flex items-center space-x-2">
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>Gemini OCR Reading Card...</span>
+                <div className="space-y-2">
+                  <div className="relative rounded-lg overflow-hidden border border-slate-700 bg-slate-900 aspect-[16/10]">
+                    <img
+                      src={selectedImage}
+                      alt="Visiting Card Preview"
+                      className="w-full h-full object-contain bg-black"
+                    />
+                    {/* Scan Laser effect when scanning */}
+                    {isScanning && (
+                      <div className="absolute inset-0 bg-blue-500/20 backdrop-blur-[1px] flex flex-col items-center justify-center space-y-3">
+                        <div className="w-full h-1 bg-gradient-to-r from-transparent via-blue-400 to-transparent animate-pulse shadow-lg shadow-blue-500" />
+                        <div className="px-3 py-1 bg-slate-900/90 text-blue-400 text-xs font-bold rounded-full border border-blue-500/30 flex items-center space-x-2">
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Gemini OCR Reading Card...</span>
+                        </div>
                       </div>
+                    )}
+                  </div>
+
+                  {/* Image Orientation Tools */}
+                  <div className="flex items-center justify-between text-xs pt-1 px-1">
+                    <span className="text-slate-400 text-[11px]">Card orientation incorrect?</span>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRotateImage();
+                        }}
+                        className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 flex items-center space-x-1 transition-all"
+                        title="Rotate image 90 degrees"
+                      >
+                        <RotateCw className="w-3.5 h-3.5 text-blue-400" />
+                        <span>Rotate 90°</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFlipImage();
+                        }}
+                        className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 flex items-center space-x-1 transition-all"
+                        title="Flip image horizontally (mirror fix)"
+                      >
+                        <FlipHorizontal className="w-3.5 h-3.5 text-indigo-400" />
+                        <span>Flip Mirror</span>
+                      </button>
                     </div>
-                  )}
+                  </div>
                 </div>
               ) : (
                 <div className="py-8 space-y-3">

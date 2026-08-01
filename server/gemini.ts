@@ -133,29 +133,35 @@ export async function extractCardDataFromImage(base64Image: string, mimeType: st
     return generateFallbackOCRResult(base64Image);
   }
 
-  const prompt = `You are an expert OCR and Digital Identity AI system. Analyze this visiting card image in detail.
-Look carefully at all text on the card regardless of lighting, angle, or if someone is holding the card.
-Extract all printed contact details, company information, job title, social handles, addresses, and primary branding color.
+  const prompt = `You are an expert OCR and Digital Identity AI system. Analyze this visiting card / business card image.
+The image may be a high-resolution file upload, a camera snapshot, or a webcam photo where a person is holding a card in their hand.
+
+YOUR TASK:
+1. Locate the visiting card within the image.
+2. Read and extract ALL printed text on the card with high precision. If text is tilted, angled, or mirrored (from a front camera), mentally adjust and extract the correct readable text.
+3. Extract exact details: Name, Job Title, Company/Organization Name, Email, Phone, WhatsApp, Website, Address, Tagline/Slogan, Business Category, and Brand Primary Hex Color.
+4. IMPORTANT: Extract ONLY the text actually printed on the card.
+5. CRITICAL: Do NOT invent, fabricate, or hallucinate false data or dummy placeholders like "John Doe", "contact@business.com", "Corporate Enterprise", or "+1 (555) 000-0000".
+6. If a specific field is not printed or not visible on the card, set it to an empty string "".
 
 Return ONLY a single valid JSON object matching this structure:
 {
-  "name": "Extracted Full Name",
-  "title": "Extracted Job Title or Role",
-  "company": "Extracted Company / Organization Name",
-  "tagline": "Extracted Tagline or Slogan if present",
-  "email": "Extracted Email Address",
-  "phone": "Extracted Phone or Mobile Number",
-  "whatsapp": "Extracted WhatsApp number or phone number",
-  "website": "Extracted Website URL starting with https:// or http://",
-  "address": "Extracted Physical Business Address",
-  "businessCategory": "Categorize appropriately (e.g. 'IT Services & Software', 'Consulting', 'Real Estate', 'Healthcare', 'Legal', 'Manufacturing', 'Retail', 'Education', 'Services')",
+  "name": "Exact Printed Name or empty string",
+  "title": "Exact Printed Title/Role or empty string",
+  "company": "Exact Printed Company Name or empty string",
+  "tagline": "Printed tagline or empty string",
+  "email": "Exact Printed Email or empty string",
+  "phone": "Exact Printed Phone or empty string",
+  "whatsapp": "Exact Printed WhatsApp or phone or empty string",
+  "website": "Exact Printed Website URL or empty string",
+  "address": "Exact Printed Address or empty string",
+  "businessCategory": "Categorize appropriately (e.g. 'IT Services & Software', 'Consulting', 'Real Estate', 'Healthcare', 'Legal', 'Services', 'Travel & Tourism', etc.)",
   "socialLinks": {
-    "linkedin": "LinkedIn profile/company URL if printed",
-    "twitter": "Twitter/X handle or URL if printed",
-    "instagram": "Instagram handle or URL if printed",
-    "github": "GitHub profile if printed"
+    "linkedin": "LinkedIn profile URL if printed",
+    "twitter": "Twitter/X handle if printed",
+    "instagram": "Instagram handle if printed"
   },
-  "primaryColor": "Hex color code matching card branding e.g. #1e40af",
+  "primaryColor": "Hex color code matching card design e.g. #1e40af",
   "confidenceScores": {
     "overall": 95,
     "name": 95,
@@ -165,13 +171,8 @@ Return ONLY a single valid JSON object matching this structure:
     "website": 90,
     "address": 90
   },
-  "suggestedSlug": "lowercase-kebab-case-name"
-}
-
-IMPORTANT RULES:
-1. Extract the EXACT text printed on the card. Do NOT invent generic placeholder text like "Card Holder", "John Doe", or "Global Innovations".
-2. If a field is not present on the card, set it to an empty string "".
-3. Ensure phone numbers, email addresses, and names are extracted accurately from the image.`;
+  "suggestedSlug": "lowercase-kebab-case-name-or-company"
+}`;
 
   // Strip base64 prefix if present
   const cleanBase64 = base64Image.replace(/^data:image\/[a-zA-Z0-9\+\-\.]+;base64,/, '').trim();
@@ -214,34 +215,38 @@ IMPORTANT RULES:
 
         const parsed = JSON.parse(cleanText);
 
-        const name = parsed.name || 'Card Profile';
-        const company = parsed.company || 'Business Identity';
-        const email = parsed.email || '';
-        const phone = parsed.phone || '';
+        const name = (parsed.name || '').trim();
+        const company = (parsed.company || '').trim();
+        const title = (parsed.title || '').trim();
+        const email = (parsed.email || '').trim();
+        const phone = (parsed.phone || '').trim();
+
+        const slugSource = name || company || 'card-profile';
+        const cleanSlug = (parsed.suggestedSlug || slugSource.toLowerCase().replace(/[^a-z0-9]+/g, '-')).replace(/^-|-$/g, '');
 
         return {
           name: name,
-          title: parsed.title || '',
+          title: title,
           company: company,
-          tagline: parsed.tagline || '',
+          tagline: (parsed.tagline || '').trim(),
           email: email,
           phone: phone,
-          whatsapp: parsed.whatsapp || phone,
-          website: parsed.website || '',
-          address: parsed.address || '',
-          businessCategory: parsed.businessCategory || 'Business Services',
+          whatsapp: (parsed.whatsapp || phone || '').trim(),
+          website: (parsed.website || '').trim(),
+          address: (parsed.address || '').trim(),
+          businessCategory: parsed.businessCategory || 'IT Services & Software',
           socialLinks: parsed.socialLinks || {},
-          primaryColor: parsed.primaryColor || '#2563eb',
+          primaryColor: parsed.primaryColor || '#1d4ed8',
           confidenceScores: parsed.confidenceScores || {
             overall: 90,
-            name: name ? 95 : 50,
-            email: email ? 95 : 50,
-            phone: phone ? 95 : 50,
-            company: company ? 95 : 50,
+            name: name ? 95 : 40,
+            email: email ? 95 : 40,
+            phone: phone ? 95 : 40,
+            company: company ? 95 : 40,
             website: 80,
             address: 80,
           },
-          suggestedSlug: (parsed.suggestedSlug || (name || 'profile').toLowerCase().replace(/[^a-z0-9]+/g, '-')).replace(/^-|-$/g, ''),
+          suggestedSlug: cleanSlug,
           rawText: text,
         };
       } catch (error: any) {
