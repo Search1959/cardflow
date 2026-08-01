@@ -73,6 +73,12 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ slug }) => {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
+  const cleanSlug = (slug || '')
+    .replace(/^\/*(card\/)*/i, '')
+    .replace(/^\/+|\/+$/g, '')
+    .toLowerCase()
+    .trim();
+
   // Fetch card profile data
   useEffect(() => {
     async function fetchCard() {
@@ -80,7 +86,7 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ slug }) => {
       setError(null);
       try {
         const searchParams = new URLSearchParams(window.location.search);
-        const data = await getCardGloballyBySlug(slug, searchParams);
+        const data = await getCardGloballyBySlug(cleanSlug || slug, searchParams);
 
         if (!data) {
           throw new Error('Digital identity profile not found');
@@ -99,10 +105,15 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ slug }) => {
         ]);
 
         // Generate QR code data URL using universal shareable URL
-        const { universalUrl } = getShareableCardUrls(data);
-        const qrData = await QRCode.toDataURL(universalUrl, { width: 300, margin: 2 });
-        setQrCodeDataUrl(qrData);
+        try {
+          const { universalUrl } = getShareableCardUrls(data);
+          const qrData = await QRCode.toDataURL(universalUrl, { width: 300, margin: 2 });
+          setQrCodeDataUrl(qrData);
+        } catch (qrErr) {
+          console.warn('QR generation error:', qrErr);
+        }
       } catch (err: any) {
+        console.error('Fetch card error:', err);
         setError(err.message || 'Failed to load card profile');
       } finally {
         setLoading(false);
@@ -110,7 +121,7 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ slug }) => {
     }
 
     if (slug) fetchCard();
-  }, [slug]);
+  }, [slug, cleanSlug]);
 
   // Handle QR Scan increment
   const handleOpenQRModal = async () => {
@@ -266,7 +277,7 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ slug }) => {
     );
   }
 
-  if (error || !card) {
+  if (!card) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white p-4 text-center">
         <div className="w-16 h-16 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-center justify-center text-red-400 mb-4">
@@ -274,7 +285,7 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ slug }) => {
         </div>
         <h1 className="text-2xl font-bold">Card Profile Not Found</h1>
         <p className="text-slate-400 text-sm mt-2 max-w-md">
-          The requested slug <code className="text-blue-400 bg-slate-900 px-2 py-0.5 rounded">/card/{slug}</code> does not exist or has been removed.
+          The requested slug <code className="text-blue-400 bg-slate-900 px-2 py-0.5 rounded">/card/{cleanSlug || slug}</code> does not exist or has been removed.
         </p>
       </div>
     );

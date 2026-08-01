@@ -45,6 +45,9 @@ export async function saveCardToFirestore(card: CardProfile): Promise<boolean> {
 export async function getCardFromFirestore(slug: string): Promise<CardProfile | null> {
   try {
     const cleanSlug = slug.toLowerCase().trim();
+    if (!cleanSlug) return null;
+
+    // Direct doc lookup
     const cardRef = doc(db, 'cards', cleanSlug);
     const docSnap = await getDoc(cardRef);
 
@@ -52,11 +55,31 @@ export async function getCardFromFirestore(slug: string): Promise<CardProfile | 
       return docSnap.data() as CardProfile;
     }
 
-    // Fallback search by slug field in case document key differs
+    // Exact query by slug field
     const cardsQuery = query(collection(db, 'cards'), where('slug', '==', cleanSlug));
     const querySnap = await getDocs(cardsQuery);
     if (!querySnap.empty) {
       return querySnap.docs[0].data() as CardProfile;
+    }
+
+    // Fallback: search all Firestore docs for prefix / partial match
+    const allDocs = await getDocs(collection(db, 'cards'));
+    if (!allDocs.empty) {
+      for (const d of allDocs.docs) {
+        const c = d.data() as CardProfile;
+        if (c && c.slug) {
+          const s = c.slug.toLowerCase().trim();
+          if (
+            s === cleanSlug ||
+            cleanSlug.startsWith(s) ||
+            s.startsWith(cleanSlug) ||
+            cleanSlug.includes(s) ||
+            s.includes(cleanSlug)
+          ) {
+            return c;
+          }
+        }
+      }
     }
   } catch (err) {
     console.warn('[Firestore] Error getting card from cloud database:', err);

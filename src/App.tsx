@@ -17,9 +17,13 @@ export default function App() {
     const handlePopState = () => {
       const path = window.location.pathname;
       if (path.startsWith('/card/')) {
-        const slug = path.replace('/card/', '').trim();
-        if (slug) {
-          setActiveSlug(slug);
+        let rawSlug = path.replace(/^\/card\//, '').trim();
+        rawSlug = rawSlug.split('?')[0].replace(/\/+$/, '');
+        try {
+          rawSlug = decodeURIComponent(rawSlug);
+        } catch (e) {}
+        if (rawSlug) {
+          setActiveSlug(rawSlug);
           setCurrentView('profile');
         }
       } else if (path === '/scan') {

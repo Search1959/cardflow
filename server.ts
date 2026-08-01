@@ -99,12 +99,10 @@ async function startServer() {
       const slug = req.params.slug;
       const card = getCardBySlug(slug);
 
-      if (!card) {
-        return res.status(404).json({ error: 'Card profile not found' });
-      }
-
       // Increment view metric
-      incrementCardMetric(slug, 'views');
+      if (card && card.slug) {
+        incrementCardMetric(card.slug, 'views');
+      }
 
       return res.json(card);
     } catch (err: any) {
