@@ -7,6 +7,7 @@ import { AdminDashboard } from './components/AdminDashboard.tsx';
 import { LeadsManager } from './components/LeadsManager.tsx';
 import { AnalyticsView } from './components/AnalyticsView.tsx';
 import { CardProfile } from './types.js';
+import { updatePageSEO, generatePlatformAppJSONLD } from './lib/seo.js';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<string>('explore');
@@ -43,6 +44,39 @@ export default function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  // Update platform level SEO metadata when switching non-profile views
+  useEffect(() => {
+    if (currentView === 'explore') {
+      updatePageSEO({
+        title: 'CardFlow Pro - AI Digital Identity & Visiting Card Directory',
+        description: 'Discover verified executive digital identity cards, scan physical visiting cards with AI OCR, download electronic vCards, and capture CRM leads.',
+        keywords: 'digital business cards, visiting card scanner, AI OCR card reader, executive profiles, electronic vCards',
+        jsonLd: generatePlatformAppJSONLD(),
+      });
+    } else if (currentView === 'scan') {
+      updatePageSEO({
+        title: 'AI Visiting Card Scanner & OCR Extraction | CardFlow Pro',
+        description: 'Scan physical paper visiting cards instantly using Gemini AI OCR vision to auto-extract contact details and create custom digital identity profiles.',
+        keywords: 'card scanner, AI OCR, business card reader, visiting card scanner, automated contact extraction',
+      });
+    } else if (currentView === 'dashboard') {
+      updatePageSEO({
+        title: 'Executive Profile Manager & Dashboard | CardFlow Pro',
+        description: 'Manage digital identity profile cards, edit contact details, customize themes, and track engagement.',
+      });
+    } else if (currentView === 'leads') {
+      updatePageSEO({
+        title: 'CRM Lead Management & Inquiries | CardFlow Pro',
+        description: 'Track and manage inbound business inquiries captured directly from digital profile cards.',
+      });
+    } else if (currentView === 'analytics') {
+      updatePageSEO({
+        title: 'Real-Time QR & Profile Analytics | CardFlow Pro',
+        description: 'Monitor profile card views, QR scan counts, lead conversion rates, and engagement performance.',
+      });
+    }
+  }, [currentView]);
 
   const navigateTo = (view: string, slug?: string) => {
     setCurrentView(view);

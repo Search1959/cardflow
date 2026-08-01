@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { CardProfile, ChatMessage } from '../types.js';
 import { downloadVCard } from '../lib/vcard.js';
+import { updatePageSEO, generateCardJSONLD } from '../lib/seo.js';
 import { AvatarDisplay } from './AvatarDisplay.js';
 import { MapLocationDisplay } from './MapLocationDisplay.js';
 import { getBannerForCategory } from '../lib/bannerPresets.js';
@@ -133,6 +134,22 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ slug }) => {
         }
 
         setCard(data);
+
+        // Update SEO metadata dynamically
+        const cardTitle = `${data.name} - ${data.title} at ${data.company} | Digital Identity Card`;
+        const cardDesc = data.tagline || (data.bio ? data.bio.slice(0, 160) : `Official digital contact identity card for ${data.name}, ${data.title} at ${data.company}. Connect directly via vCard, WhatsApp, email, or chat with AI assistant.`);
+        const profileUrl = `${window.location.origin}/card/${data.slug}`;
+        const ogImg = data.bannerUrl || data.avatarUrl || 'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=1200&q=80';
+
+        updatePageSEO({
+          title: cardTitle,
+          description: cardDesc,
+          canonicalUrl: profileUrl,
+          ogImage: ogImg,
+          ogType: 'profile',
+          keywords: `${data.name}, ${data.title}, ${data.company}, ${data.businessCategory}, digital visiting card, vCard, CardFlow Pro`,
+          jsonLd: generateCardJSONLD(data, profileUrl),
+        });
 
         // Welcome message for AI Chatbot
         setChatMessages([

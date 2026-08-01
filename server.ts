@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 import {
   getCards,
@@ -410,6 +411,139 @@ async function startServer() {
       });
     } catch (err: any) {
       return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- SEO & SEARCH ENGINE ROUTING ---
+
+  // Dynamic robots.txt
+  app.get('/robots.txt', (req, res) => {
+    const host = req.protocol + '://' + req.get('host');
+    res.type('text/plain');
+    res.send(`User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: ${host}/sitemap.xml
+`);
+  });
+
+  // Dynamic XML Sitemap for all published card profile pages
+  app.get('/sitemap.xml', (req, res) => {
+    const host = req.protocol + '://' + req.get('host');
+    const cards = getCards();
+
+    const staticUrls: Array<{ loc: string; lastmod?: string; priority: string; changefreq: string }> = [
+      { loc: `${host}/`, priority: '1.0', changefreq: 'daily' },
+      { loc: `${host}/scan`, priority: '0.9', changefreq: 'weekly' },
+      { loc: `${host}/dashboard`, priority: '0.8', changefreq: 'weekly' },
+      { loc: `${host}/leads`, priority: '0.7', changefreq: 'daily' },
+      { loc: `${host}/analytics`, priority: '0.7', changefreq: 'daily' },
+    ];
+
+    const cardUrls = cards.map((c) => ({
+      loc: `${host}/card/${c.slug}`,
+      lastmod: c.updatedAt ? new Date(c.updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      priority: '0.9',
+      changefreq: 'daily',
+    }));
+
+    const allUrls = [...staticUrls, ...cardUrls];
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${allUrls
+  .map(
+    (u) => `  <url>
+    <loc>${u.loc}</loc>
+    ${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ''}
+    <changefreq>${u.changefreq}</changefreq>
+    <priority>${u.priority}</priority>
+  </url>`
+  )
+  .join('\n')}
+</urlset>`;
+
+    res.type('application/xml');
+    res.send(xml);
+  });
+
+  // Server-Side Dynamic Meta Tag & Structured Data Injection for /card/:slug requests
+  app.get('/card/:slug', (req, res, next) => {
+    try {
+      const slug = req.params.slug;
+      const card = getCardBySlug(slug);
+
+      if (!card) {
+        return next();
+      }
+
+      const host = req.protocol + '://' + req.get('host');
+      const fullUrl = `${host}/card/${card.slug}`;
+      const cardTitle = `${card.name} - ${card.title} at ${card.company} | Digital Identity Card`;
+      const cardDesc = card.tagline || (card.bio ? card.bio.slice(0, 160) : `Official digital contact identity card for ${card.name}, ${card.title} at ${card.company}. Connect directly via vCard, WhatsApp, or AI Chat.`);
+      const ogImg = card.bannerUrl || card.avatarUrl || 'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=1200&q=80';
+
+      let indexPath = path.join(process.cwd(), 'index.html');
+      if (process.env.NODE_ENV === 'production') {
+        indexPath = path.join(process.cwd(), 'dist', 'index.html');
+      }
+
+      if (!fs.existsSync(indexPath)) {
+        return next();
+      }
+
+      let html = fs.readFileSync(indexPath, 'utf-8');
+
+      // Inject custom title and descriptions
+      html = html.replace(/<title>.*?<\/title>/gi, `<title>${cardTitle}</title>`);
+      html = html.replace(/<meta name="title" content=".*?" \/>/gi, `<meta name="title" content="${cardTitle}" />`);
+      html = html.replace(/<meta name="description" content=".*?" \/>/gi, `<meta name="description" content="${cardDesc.replace(/"/g, '&quot;')}" />`);
+
+      // Inject Open Graph tags
+      html = html.replace(/<meta property="og:title" content=".*?" \/>/gi, `<meta property="og:title" content="${cardTitle}" />`);
+      html = html.replace(/<meta property="og:description" content=".*?" \/>/gi, `<meta property="og:description" content="${cardDesc.replace(/"/g, '&quot;')}" />`);
+      html = html.replace(/<meta property="og:image" content=".*?" \/>/gi, `<meta property="og:image" content="${ogImg}" />`);
+
+      // Inject Twitter Cards
+      html = html.replace(/<meta name="twitter:title" content=".*?" \/>/gi, `<meta name="twitter:title" content="${cardTitle}" />`);
+      html = html.replace(/<meta name="twitter:description" content=".*?" \/>/gi, `<meta name="twitter:description" content="${cardDesc.replace(/"/g, '&quot;')}" />`);
+      html = html.replace(/<meta name="twitter:image" content=".*?" \/>/gi, `<meta name="twitter:image" content="${ogImg}" />`);
+
+      const jsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'ProfilePage',
+        'dateCreated': card.createdAt,
+        'dateModified': card.updatedAt,
+        'mainEntity': {
+          '@type': 'Person',
+          'name': card.name,
+          'jobTitle': card.title,
+          'worksFor': {
+            '@type': 'Organization',
+            'name': card.company,
+          },
+          'email': card.email,
+          'telephone': card.phone,
+          'url': fullUrl,
+          'image': card.avatarUrl || card.bannerUrl,
+          'description': card.tagline || card.bio,
+        },
+      };
+
+      const headInjections = `
+    <link rel="canonical" href="${fullUrl}" />
+    <meta property="og:url" content="${fullUrl}" />
+    <script type="application/ld+json">${JSON.stringify(jsonLd, null, 2)}</script>
+    `;
+
+      html = html.replace('</head>', `${headInjections}\n</head>`);
+
+      res.type('text/html');
+      return res.send(html);
+    } catch (err) {
+      console.warn('SEO server prerender error:', err);
+      return next();
     }
   });
 
