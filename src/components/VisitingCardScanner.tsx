@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { OCRResult, CardProfile } from '../types.js';
 import { generateClientFallbackOCR, extractCardDataWithClientOCR } from '../lib/ocrFallback.js';
+import { saveCardGlobally, getShareableCardUrls } from '../lib/globalSync.js';
 import { MapLocationDisplay } from './MapLocationDisplay.js';
 import { BANNER_PRESETS, getBannerForCategory } from '../lib/bannerPresets.js';
 
@@ -340,7 +341,6 @@ export const VisitingCardScanner: React.FC<VisitingCardScannerProps> = ({
     setIsPublishing(true);
     setErrorMsg(null);
     try {
-      let createdCard: CardProfile;
       const newCardPayload = {
         ...formData,
         id: 'card-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
@@ -351,33 +351,15 @@ export const VisitingCardScanner: React.FC<VisitingCardScannerProps> = ({
         metrics: { views: 0, leadsCaptured: 0, vcardDownloads: 0, qrScans: 0 },
       };
 
-      try {
-        const response = await fetch('/api/cards', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newCardPayload),
-        });
-
-        if (response.ok) {
-          createdCard = await response.json();
-        } else {
-          createdCard = newCardPayload as CardProfile;
-        }
-      } catch (fetchErr) {
-        console.warn('Server publish endpoint unreachable, saving profile locally:', fetchErr);
-        createdCard = newCardPayload as CardProfile;
-      }
-
-      // Store in local backup cache
-      try {
-        const existingLocal = JSON.parse(localStorage.getItem('cardflow_user_cards') || '[]');
-        const updatedLocal = [createdCard, ...existingLocal.filter((c: any) => c.slug !== createdCard.slug)];
-        localStorage.setItem('cardflow_user_cards', JSON.stringify(updatedLocal));
-      } catch (e) {
-        console.warn('LocalStorage save error:', e);
-      }
+      // Save globally across Express API, Cloud KV, and LocalStorage
+      const createdCard = await saveCardGlobally(newCardPayload as CardProfile);
 
       onCardCreated(createdCard);
+
+      // Generate universal share URL with embedded fallback payload
+      const { universalUrl } = getShareableCardUrls(createdCard);
+      console.log('Published Universal Card URL:', universalUrl);
+
       onNavigateToCard(createdCard.slug);
     } catch (err: any) {
       setErrorMsg(err.message || 'Error publishing profile');

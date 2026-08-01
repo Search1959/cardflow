@@ -17,6 +17,7 @@ import {
 import { CardProfile } from '../types.js';
 import { downloadVCard } from '../lib/vcard.js';
 import { AvatarDisplay } from './AvatarDisplay.js';
+import { getAllCardsFromFirestore } from '../lib/firebase.js';
 
 interface ExploreCardsProps {
   onNavigateToCard: (slug: string) => void;
@@ -35,6 +36,13 @@ export const ExploreCards: React.FC<ExploreCardsProps> = ({
   useEffect(() => {
     async function loadCards() {
       setLoading(true);
+      let firestoreCards: CardProfile[] = [];
+      try {
+        firestoreCards = await getAllCardsFromFirestore();
+      } catch (e) {
+        console.warn('Firestore load cards error:', e);
+      }
+
       let fetched: CardProfile[] = [];
       try {
         const res = await fetch('/api/cards');
@@ -57,7 +65,7 @@ export const ExploreCards: React.FC<ExploreCardsProps> = ({
       }
 
       const mergedMap = new Map<string, CardProfile>();
-      [...fetched, ...localCards].forEach((card) => {
+      [...firestoreCards, ...fetched, ...localCards].forEach((card) => {
         if (card && card.slug) {
           mergedMap.set(card.slug, card);
         }

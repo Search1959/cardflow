@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
+import { getCardGloballyBySlug, getShareableCardUrls } from '../lib/globalSync.js';
 import {
   Phone,
   Mail,
@@ -78,19 +79,8 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ slug }) => {
       setLoading(true);
       setError(null);
       try {
-        let data: CardProfile | null = null;
-        const res = await fetch(`/api/cards/by-slug/${slug}`);
-        if (res.ok) {
-          data = await res.json();
-        } else {
-          // Check local backup cache
-          try {
-            const localCards = JSON.parse(localStorage.getItem('cardflow_user_cards') || '[]');
-            data = localCards.find((c: CardProfile) => c.slug.toLowerCase() === slug.toLowerCase()) || null;
-          } catch (e) {
-            data = null;
-          }
-        }
+        const searchParams = new URLSearchParams(window.location.search);
+        const data = await getCardGloballyBySlug(slug, searchParams);
 
         if (!data) {
           throw new Error('Digital identity profile not found');
@@ -108,9 +98,9 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ slug }) => {
           },
         ]);
 
-        // Generate QR code data URL
-        const fullUrl = `${window.location.origin}/card/${data.slug}`;
-        const qrData = await QRCode.toDataURL(fullUrl, { width: 300, margin: 2 });
+        // Generate QR code data URL using universal shareable URL
+        const { universalUrl } = getShareableCardUrls(data);
+        const qrData = await QRCode.toDataURL(universalUrl, { width: 300, margin: 2 });
         setQrCodeDataUrl(qrData);
       } catch (err: any) {
         setError(err.message || 'Failed to load card profile');

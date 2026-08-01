@@ -219,22 +219,41 @@ const INITIAL_LEADS: Lead[] = [
   }
 ];
 
+// Memory cache layer to protect against ephemeral filesystem wipes on server restarts
+let memoryCardsCache: CardProfile[] | null = null;
+
 // Helper functions for filesystem persistence
 export function getCards(): CardProfile[] {
+  if (memoryCardsCache && memoryCardsCache.length > 0) {
+    return memoryCardsCache;
+  }
   if (!fs.existsSync(CARDS_FILE)) {
-    fs.writeFileSync(CARDS_FILE, JSON.stringify(INITIAL_CARDS, null, 2));
+    try {
+      fs.writeFileSync(CARDS_FILE, JSON.stringify(INITIAL_CARDS, null, 2));
+    } catch (e) {
+      console.warn('Could not write INITIAL_CARDS file:', e);
+    }
+    memoryCardsCache = [...INITIAL_CARDS];
     return INITIAL_CARDS;
   }
   try {
     const raw = fs.readFileSync(CARDS_FILE, 'utf-8');
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    memoryCardsCache = parsed;
+    return parsed;
   } catch {
+    memoryCardsCache = [...INITIAL_CARDS];
     return INITIAL_CARDS;
   }
 }
 
 export function saveCards(cards: CardProfile[]): void {
-  fs.writeFileSync(CARDS_FILE, JSON.stringify(cards, null, 2));
+  memoryCardsCache = cards;
+  try {
+    fs.writeFileSync(CARDS_FILE, JSON.stringify(cards, null, 2));
+  } catch (e) {
+    console.warn('Could not write cards file to disk:', e);
+  }
 }
 
 export function getCardBySlug(slug: string): CardProfile | undefined {
