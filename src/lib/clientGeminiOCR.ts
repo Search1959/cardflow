@@ -1,34 +1,45 @@
 import { OCRResult } from '../types.js';
 
-const PROMPT = `You are an expert OCR and Digital Identity AI system. Analyze this visiting card / business card image.
-The image may be a high-resolution file upload, a camera snapshot, or a webcam photo where a person is holding a card in their hand.
+const PROMPT = `You are an expert OCR, Visual Identity, and Entity Extraction AI system. Analyze this image, which may contain a visiting card, business card, shop signboard, store banner, office plaque, school/institution board, or commercial signage.
+The image may be a high-resolution file upload, an outdoor photo, a camera snapshot, or a photo where a person is holding a card or pointing at a sign board.
 
 YOUR TASK:
-1. Locate the visiting card within the image.
-2. Read and extract ALL printed text on the card with high precision. If text is tilted, angled, or mirrored (from a front camera), mentally adjust and extract the correct readable text.
-3. Extract exact details: Name, Job Title, Company/Organization Name, Email, Phone, WhatsApp, Website, Address, Tagline/Slogan, Business Category, and Brand Primary Hex Color.
-4. IMPORTANT: Extract ONLY the text actually printed on the card.
-5. CRITICAL: Do NOT invent, fabricate, or hallucinate false data or dummy placeholders like "John Doe", "contact@business.com", "Corporate Enterprise", or "+1 (555) 000-0000".
-6. If a specific field is not printed or not visible on the card, set it to an empty string "".
+1. Detect and locate the main entity or subject in the image (visiting card, shop signboard, store banner, office plaque, or business signage).
+2. Read and extract ALL printed text with high precision. If text is tilted, angled, outdoors, or mirrored (from a front camera), mentally adjust and extract the correct readable text.
+3. Extract exact details into structured fields:
+   - "name": Individual's full name if printed, OR the main establishment/school/store/institution name (e.g., "Jayaswal Vidya Mandir" or "Srikrishna Jayaswal Databya Aushadhalay").
+   - "title": Individual's job title/designation if printed, OR the subtitle / institution type / department (e.g., "Govt. Sponsored High School for Boys & Girls" or "Databya Aushadhalay").
+   - "company": Organization / Company / Establishment / School / Store Name (e.g., "Jayaswal Vidya Mandir" or "Srikrishna Jayaswal Databya Aushadhalay").
+   - "tagline": Slogan, motto, operating schedule, or timing (e.g., "Monday to Saturday 6 P.M. to 8 P.M." or "Govt. Sponsored High School").
+   - "email": Exact printed email or empty string.
+   - "phone": Exact printed phone number(s) or empty string.
+   - "whatsapp": Exact printed WhatsApp or phone number or empty string.
+   - "website": Exact printed website URL or empty string.
+   - "address": Full street address printed on card or sign board (e.g., "172/A, Vivekananda Road, Kolkata - 700 006").
+   - "businessCategory": Categorize appropriately (e.g., "Education & Academics", "Healthcare & Medical", "IT Services & Software", "Retail & Storefront", "Consulting", "Real Estate", "Legal", "Services", "Travel & Tourism", etc.).
+   - "primaryColor": Hex color code matching card or signboard design (e.g., #1d4ed8, #b91c1c).
+   - "suggestedSlug": Lowercase kebab-case slug generated from the name or company/institution.
+4. IMPORTANT: Extract ONLY text actually visible in the image.
+5. CRITICAL: Do NOT invent, fabricate, or hallucinate false placeholder data like "John Doe" or "+1 555 000 0000". If a field is not printed or visible, set it to an empty string "".
 
 Return ONLY a single valid JSON object matching this structure:
 {
-  "name": "Exact Printed Name or empty string",
-  "title": "Exact Printed Title/Role or empty string",
-  "company": "Exact Printed Company Name or empty string",
-  "tagline": "Printed tagline or empty string",
+  "name": "Exact Printed Name or Establishment Name",
+  "title": "Exact Printed Title/Role or Subtitle/Type",
+  "company": "Exact Printed Company or Institution Name",
+  "tagline": "Printed tagline, slogan, or timings/schedule",
   "email": "Exact Printed Email or empty string",
   "phone": "Exact Printed Phone or empty string",
-  "whatsapp": "Exact Printed WhatsApp or phone or empty string",
+  "whatsapp": "Exact Printed WhatsApp/phone or empty string",
   "website": "Exact Printed Website URL or empty string",
   "address": "Exact Printed Address or empty string",
-  "businessCategory": "Categorize appropriately (e.g. 'IT Services & Software', 'Consulting', 'Real Estate', 'Healthcare', 'Legal', 'Services', 'Travel & Tourism', etc.)",
+  "businessCategory": "Categorize appropriately e.g. Education & Academics, Healthcare & Medical, IT Services & Software, Retail & Storefront, Consulting, etc.",
   "socialLinks": {
     "linkedin": "LinkedIn profile URL if printed",
     "twitter": "Twitter/X handle if printed",
     "instagram": "Instagram handle if printed"
   },
-  "primaryColor": "Hex color code matching card design e.g. #1e40af",
+  "primaryColor": "Hex color code matching design e.g. #1e40af",
   "confidenceScores": {
     "overall": 95,
     "name": 95,
@@ -38,7 +49,7 @@ Return ONLY a single valid JSON object matching this structure:
     "website": 90,
     "address": 90
   },
-  "suggestedSlug": "lowercase-kebab-case-name-or-company"
+  "suggestedSlug": "lowercase-kebab-case-slug"
 }`;
 
 /**
@@ -95,8 +106,10 @@ export async function tryDirectClientGeminiOCR(base64Image: string): Promise<OCR
     const cleanText = candidate.replace(/```json/gi, '').replace(/```/g, '').trim();
     const parsed = JSON.parse(cleanText);
 
-    const name = (parsed.name || '').trim();
-    const company = (parsed.company || '').trim();
+    const rawName = (parsed.name || '').trim();
+    const rawCompany = (parsed.company || '').trim();
+    const name = rawName || rawCompany || 'Digital Identity Card';
+    const company = rawCompany || rawName || 'Organization';
     const title = (parsed.title || '').trim();
     const email = (parsed.email || '').trim();
     const phone = (parsed.phone || '').trim();

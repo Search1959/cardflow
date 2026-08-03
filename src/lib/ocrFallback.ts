@@ -67,11 +67,12 @@ export function parseRawTextToCardData(rawText: string): OCRResult {
     address = addressLines.join(', ');
   }
 
-  // 5. Title / Designation detection
+  // 5. Title / Designation / Institution Subtitle detection
   const titleKeywords = [
     'manager', 'director', 'lead', 'head', 'ceo', 'cto', 'cfo', 'founder', 'co-founder',
     'president', 'vp', 'executive', 'engineer', 'architect', 'developer', 'consultant',
-    'advisor', 'designer', 'specialist', 'partner', 'officer', 'marketing', 'sales'
+    'advisor', 'designer', 'specialist', 'partner', 'officer', 'marketing', 'sales',
+    'high school', 'primary school', 'secondary school', 'boys & girls', 'databya', 'dispensary', 'retail', 'wholesale'
   ];
   for (const line of lines) {
     const lower = line.toLowerCase();
@@ -81,10 +82,12 @@ export function parseRawTextToCardData(rawText: string): OCRResult {
     }
   }
 
-  // 6. Company detection
+  // 6. Company / Establishment / Institution detection
   const companyKeywords = [
     'ltd', 'limited', 'pvt', 'inc', 'corp', 'corporation', 'llc', 'solutions', 'technologies',
-    'tech', 'services', 'agency', 'studio', 'group', 'enterprises', 'estates', 'co.', 'company'
+    'tech', 'services', 'agency', 'studio', 'group', 'enterprises', 'estates', 'co.', 'company',
+    'mandir', 'vidyalaya', 'vidya', 'school', 'college', 'aushadhalay', 'hospital', 'clinic',
+    'pharmacy', 'store', 'shop', 'center', 'centre', 'institute', 'academy', 'society', 'bhavan', 'bawan', 'trust', 'association'
   ];
   for (const line of lines) {
     const lower = line.toLowerCase();
@@ -94,7 +97,7 @@ export function parseRawTextToCardData(rawText: string): OCRResult {
     }
   }
 
-  // 7. Name detection (usually 1st or 2nd prominent non-address, non-email line)
+  // 7. Name detection (person name or establishment line)
   for (const line of lines) {
     if (
       line !== title &&
@@ -104,8 +107,7 @@ export function parseRawTextToCardData(rawText: string): OCRResult {
       !line.toLowerCase().includes('www') &&
       !phoneMatches.some((p) => line.includes(p)) &&
       !addressLines.includes(line) &&
-      line.length < 40 &&
-      /^[a-zA-Z\s.'-]+$/.test(line)
+      line.length < 50
     ) {
       name = line;
       break;
@@ -113,8 +115,14 @@ export function parseRawTextToCardData(rawText: string): OCRResult {
   }
 
   // Fallbacks if regex missed specific items
-  if (!name && lines.length > 0) {
-    name = lines[0].replace(/[^a-zA-Z\s]/g, '').trim();
+  if (!name && company) {
+    name = company;
+  } else if (!name && lines.length > 0) {
+    name = lines[0].replace(/[^a-zA-Z0-9\s&.-]/g, '').trim();
+  }
+
+  if (!company && name) {
+    company = name;
   }
 
   // Generate clean slug

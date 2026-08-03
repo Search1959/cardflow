@@ -264,10 +264,10 @@ export const VisitingCardScanner: React.FC<VisitingCardScannerProps> = ({
 
     const ctx = canvas.getContext('2d');
     if (ctx) {
-      // Un-mirror image if camera is user-facing front webcam so card text reads correctly left-to-right
+      // Un-mirror image ONLY if camera is explicitly user-facing front selfie camera
       const track = mediaStreamRef.current?.getVideoTracks()[0];
       const facing = track?.getSettings()?.facingMode;
-      const isFrontFacing = facing === 'user' || !facing;
+      const isFrontFacing = facing === 'user';
 
       if (isFrontFacing) {
         ctx.translate(targetWidth, 0);
@@ -393,23 +393,28 @@ export const VisitingCardScanner: React.FC<VisitingCardScannerProps> = ({
 
       setOcrResult(result);
 
+      const effectiveName = (result.name || result.company || 'Digital Identity Card').trim();
+      const effectiveCompany = (result.company || result.name || 'Organization').trim();
+      const effectiveTitle = (result.title || (result.company ? 'Establishment / Corporate Profile' : 'Executive')).trim();
+      const effectiveCategory = result.businessCategory || 'IT Services & Software';
+
       // Pre-fill editable form with extracted details
       setFormData({
-        name: result.name || '',
-        title: result.title || '',
-        company: result.company || '',
-        tagline: result.tagline || (result.company ? `Driving Strategic Innovation & Enterprise Excellence at ${result.company}` : `Excellence in ${result.businessCategory || 'IT Services & Software'}`),
+        name: effectiveName,
+        title: effectiveTitle,
+        company: effectiveCompany,
+        tagline: result.tagline || (effectiveCompany ? `Official identity profile for ${effectiveCompany}` : `Excellence in ${effectiveCategory}`),
         bio: result.bio || '',
         email: result.email || '',
         phone: result.phone || '',
         whatsapp: result.whatsapp || result.phone || '',
         website: result.website || '',
         address: result.address || '',
-        businessCategory: result.businessCategory || 'IT Services & Software',
-        bannerUrl: getBannerForCategory(result.businessCategory || 'IT Services & Software', result.title),
+        businessCategory: effectiveCategory,
+        bannerUrl: getBannerForCategory(effectiveCategory, effectiveTitle),
         primaryColor: result.primaryColor || '#1e40af',
         themeStyle: 'executive',
-        slug: result.suggestedSlug || (result.name ? result.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'profile'),
+        slug: result.suggestedSlug || effectiveName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'profile',
         socialLinks: result.socialLinks || {},
         cardImageUrl: src,
       });
@@ -417,23 +422,28 @@ export const VisitingCardScanner: React.FC<VisitingCardScannerProps> = ({
       console.error('OCR Process Error:', err);
       const fallbackResult = await extractCardDataWithClientOCR(src);
       setOcrResult(fallbackResult);
+      const fbName = (fallbackResult.name || fallbackResult.company || 'Digital Identity Card').trim();
+      const fbCompany = (fallbackResult.company || fallbackResult.name || 'Organization').trim();
+      const fbTitle = (fallbackResult.title || 'Establishment Profile').trim();
+      const fbCategory = fallbackResult.businessCategory || 'IT Services & Software';
+
       setFormData({
-        name: fallbackResult.name,
-        title: fallbackResult.title,
-        company: fallbackResult.company,
-        tagline: fallbackResult.tagline,
-        bio: fallbackResult.bio,
-        email: fallbackResult.email,
-        phone: fallbackResult.phone,
-        whatsapp: fallbackResult.whatsapp,
-        website: fallbackResult.website,
-        address: fallbackResult.address,
-        businessCategory: fallbackResult.businessCategory,
-        bannerUrl: getBannerForCategory(fallbackResult.businessCategory, fallbackResult.title),
-        primaryColor: fallbackResult.primaryColor,
+        name: fbName,
+        title: fbTitle,
+        company: fbCompany,
+        tagline: fallbackResult.tagline || `Official identity profile for ${fbCompany}`,
+        bio: fallbackResult.bio || '',
+        email: fallbackResult.email || '',
+        phone: fallbackResult.phone || '',
+        whatsapp: fallbackResult.whatsapp || fallbackResult.phone || '',
+        website: fallbackResult.website || '',
+        address: fallbackResult.address || '',
+        businessCategory: fbCategory,
+        bannerUrl: getBannerForCategory(fbCategory, fbTitle),
+        primaryColor: fallbackResult.primaryColor || '#1e40af',
         themeStyle: 'executive',
-        slug: fallbackResult.suggestedSlug,
-        socialLinks: fallbackResult.socialLinks,
+        slug: fallbackResult.suggestedSlug || fbName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'profile',
+        socialLinks: fallbackResult.socialLinks || {},
         cardImageUrl: src,
       });
     } finally {
@@ -497,10 +507,10 @@ export const VisitingCardScanner: React.FC<VisitingCardScannerProps> = ({
             <span>AI Multi-Modal OCR & Entity Extraction</span>
           </div>
           <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight">
-            Scan Physical Card into <span className="text-blue-400">Digital Identity</span>
+            Scan Visiting Cards & Signboards into <span className="text-blue-400">Digital Identity</span>
           </h1>
           <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-            Capture or upload a visiting card. Our server-side Gemini AI extracts contact info, company details, logos, social links, brand colors, and generates a live SEO profile page at <code className="text-blue-300 bg-slate-800 px-1.5 py-0.5 rounded">/card/your-slug</code>.
+            Capture or upload any visiting card, store signboard, office plaque, or business banner. Our AI OCR engine extracts establishment names, contact details, address, operating hours, and generates a live digital profile page at <code className="text-blue-300 bg-slate-800 px-1.5 py-0.5 rounded">/card/your-slug</code>.
           </p>
         </div>
       </div>
@@ -511,7 +521,7 @@ export const VisitingCardScanner: React.FC<VisitingCardScannerProps> = ({
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6 text-white shadow-xl">
             <h2 className="text-lg font-bold flex items-center space-x-2">
               <Camera className="w-5 h-5 text-blue-400" />
-              <span>1. Capture Visiting Card</span>
+              <span>1. Capture Visiting Card or Signboard</span>
             </h2>
 
             {/* Hidden Camera Input for Native Mobile Camera App */}
@@ -617,8 +627,8 @@ export const VisitingCardScanner: React.FC<VisitingCardScannerProps> = ({
                     <Upload className="w-6 h-6" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold">Click to upload or drag visiting card photo</p>
-                    <p className="text-xs text-slate-500 mt-1">Supports PNG, JPG, WebP up to 10MB</p>
+                    <p className="text-sm font-semibold">Click to upload or drag visiting card or signboard photo</p>
+                    <p className="text-xs text-slate-500 mt-1">Supports visiting cards, shopfront signs, store banners, and office plaques</p>
                   </div>
                 </div>
               )}
